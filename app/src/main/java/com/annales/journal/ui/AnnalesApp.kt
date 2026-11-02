@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
+import com.annales.journal.data.Collection
 import com.annales.journal.data.Stamp
 import com.annales.journal.render.Photos
 import kotlinx.coroutines.Dispatchers
@@ -48,15 +49,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
-private enum class Tab(val label: String, val glyph: String) { TODAY("Today", "◎"), JOURNAL("Journal", "▦"), PROFILE("Profile", "◯") }
+private enum class Tab(val label: String, val glyph: String) {
+    TODAY("Today", "◎"), JOURNAL("Journal", "▦"), COLLECTIONS("Collections", "❖"), PROFILE("Profile", "◯")
+}
+
+/** What the full-screen viewer is showing: a run of stamps, where to start, and the collection it came from. */
+private data class Viewing(val items: List<Pair<LocalDate, Stamp>>, val start: Int, val inside: Collection?)
 
 @Composable
 fun AnnalesApp(model: AnnalesModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var tab by rememberSaveable { mutableStateOf(Tab.TODAY) }
-    var openDay by remember { mutableStateOf<LocalDate?>(null) }       // a past day opened from the Journal
-    var viewing by remember { mutableStateOf<Pair<LocalDate, Stamp>?>(null) }
+    var openDay by remember { mutableStateOf<LocalDate?>(null) }        // a past day, opened from the Journal or a collection
+    var openColl by remember { mutableStateOf<Long?>(null) }
+    var editing by remember { mutableStateOf<Collection?>(null) }       // id 0 = new
+    var viewing by remember { mutableStateOf<Viewing?>(null) }
     var cropping by remember { mutableStateOf<Pair<LocalDate, Bitmap>?>(null) }
     var pickFor by remember { mutableStateOf(LocalDate.now()) }
 
@@ -72,6 +80,10 @@ fun AnnalesApp(model: AnnalesModel) {
         pickFor = date
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
+    fun viewDay(date: LocalDate, s: Stamp) {
+        val list = model.day(date).stamps.map { date to it }
+        viewing = Viewing(list, list.indexOfFirst { it.second.id == s.id }, null)
+    }
 
     // ask once for notifications, for the evening reminder (Android 13+)
     val notify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -79,26 +91,50 @@ fun AnnalesApp(model: AnnalesModel) {
         if (Build.VERSION.SDK_INT >= 33 && model.reminder) notify.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    BackHandler(enabled = openDay != null && viewing == null && cropping == null) { openDay = null }
+    val overlay = viewing != null || cropping != null || editing != null
+    BackHandler(enabled = !overlay && (openDay != null || openColl != null)) { if (openDay != null) openDay = null else openColl = null }
 
     Box(Modifier.fillMaxSize().background(K.bg)) {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth().statusBarsPadding()) {
                 val day = openDay
+                val coll = openColl?.let { id -> model.collections.firstOrNull { it.id == id } }
                 when {
                     day != null -> Column {
-                        TextButton(onClick = { openDay = null }, modifier = Modifier.padding(start = 8.dp)) { Text("‹ Journal", color = K.acc) }
-                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewing = day to it })
+                        TextButton(onClick = { openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
+                            Text("‹ ${coll?.name ?: "Journal"}", color = K.acc)
+                        }
+                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) })
                     }
-                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewing = LocalDate.now() to it })
+                    coll != null -> CollectionScreen(
+                        model, coll,
+                        onBack = { openColl = null }, onEdit = { editing = coll },
+                        onOpenStamp = { _, s, all -> viewing = Viewing(all, all.indexOfFirst { it.second.id == s.id }, coll) },
+                        onOpenDay = { if (it == LocalDate.now()) { openColl = null; tab = Tab.TODAY } else openDay = it },
+                    )
+                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) })
                     tab == Tab.JOURNAL -> JournalScreen(model, onOpenDay = { if (it == LocalDate.now()) tab = Tab.TODAY else openDay = it })
+                    tab == Tab.COLLECTIONS -> CollectionsScreen(
+                        model, onOpen = { openColl = it.id },
+                        onNew = { type -> editing = Collection(0, type, "", from = LocalDate.now(), to = LocalDate.now().plusDays(2)) },
+                    )
                     else -> ProfileScreen(model)
                 }
             }
-            TabBar(tab) { tab = it; openDay = null }
+            TabBar(tab) { tab = it; openDay = null; openColl = null }
         }
 
-        viewing?.let { (date, stamp) -> Viewer(model, date, stamp) { viewing = null } }
+        editing?.let { c ->
+            CollectionForm(
+                model, c, onClose = { editing = null },
+                onSaved = { saved ->
+                    editing = null; tab = Tab.COLLECTIONS; openColl = saved.id
+                    model.message = if (c.id == 0L) "${saved.name} created." else "${saved.name} saved."
+                },
+                onDeleted = { editing = null; openColl = null; model.message = "Collection deleted. Its stamps are still in your journal." },
+            )
+        }
+        viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
         cropping?.let { (date, bmp) ->
             BackHandler { cropping = null }
             CropScreen(bmp, onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped) }

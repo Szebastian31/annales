@@ -11,9 +11,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.annales.journal.data.CollType
+import com.annales.journal.data.Collection
+import com.annales.journal.data.CollectionStore
 import com.annales.journal.data.Day
 import com.annales.journal.data.Ink
 import com.annales.journal.data.JournalStore
+import com.annales.journal.data.Places
 import com.annales.journal.data.Settings
 import com.annales.journal.data.Stamp
 import com.annales.journal.render.Photos
@@ -28,9 +32,11 @@ import java.util.UUID
 
 class AnnalesModel(app: Application) : AndroidViewModel(app) {
     private val store = JournalStore(app)
+    private val collStore = CollectionStore(app)
     val settings = Settings(app)
 
     var days by mutableStateOf<Map<LocalDate, Day>>(emptyMap()); private set
+    var collections by mutableStateOf<List<Collection>>(emptyList()); private set
     /** Bumped whenever a stamp's picture changes, so screens reload it. */
     var version by mutableIntStateOf(0); private set
     var busy by mutableStateOf(false); private set
@@ -47,6 +53,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     init {
         if (settings.since.isEmpty()) settings.since = LocalDate.now().toString()
         viewModelScope.launch { days = withContext(Dispatchers.IO) { store.load() } }
+        viewModelScope.launch { collections = withContext(Dispatchers.IO) { collStore.load() } }
     }
 
     val since: LocalDate get() = runCatching { LocalDate.parse(settings.since) }.getOrDefault(LocalDate.now())
@@ -76,6 +83,8 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         val d = day(date)
         if (d.sealed) return
         put(d.copy(stamps = d.stamps.filterNot { it.id == s.id }))
+        if (collections.any { s.id in it.ids || it.cover == s.id })
+            putCollections(collections.map { it.copy(ids = it.ids - s.id, cover = it.cover.takeIf { c -> c != s.id }) })
         viewModelScope.launch(Dispatchers.IO) { store.delete(s) }
     }
 
@@ -89,18 +98,19 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         val d = day(date)
         if (d.sealed || d.stamps.isEmpty()) return
         val hour = LocalTime.now().hour
+        val (mark, bottom, sealInk) = postmarkFor(date)
         var saved = 0
         work({
             d.stamps.forEach { s ->
                 val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
-                val seal = Seal(date, hour, office, postcode, ink.argb, s.id.hashCode() and 0xFFFF)
+                val seal = Seal(date, hour, mark, bottom, sealInk.argb, s.id.hashCode() and 0xFFFF)
                 val png = store.stampFile(s.id)
                 Photos.writePng(StampRenderer.render(photo, cut, seal), png)
                 photo.recycle()
                 if (saveToPhotos && Photos.saveToGallery(getApplication<Application>(), png, "annales-$date-${s.id.take(4)}")) saved++
             }
         }, done = {
-            put(day(date).copy(sealed = true, sealedAt = System.currentTimeMillis(), office = office))
+            put(day(date).copy(sealed = true, sealedAt = System.currentTimeMillis(), office = mark))
             version++
             message = when {
                 !saveToPhotos -> "Sealed."
@@ -109,6 +119,62 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
             }
         })
     }
+
+    // ---- collections ----
+
+    /** The trip this day falls in, if any: its city's post office stamps the day. */
+    fun tripOn(date: LocalDate) = collections.firstOrNull { it.type == CollType.TRIP && it.covers(date) }
+
+    /** Office over the top, text underneath, and ink, for sealing [date]. */
+    fun postmarkFor(date: LocalDate): Triple<String, String, Ink> {
+        val trip = tripOn(date) ?: return Triple(office, postcode, ink)
+        val p = Places.of(trip.place)
+        val tripInk = trip.ink?.let { runCatching { Ink.valueOf(it) }.getOrNull() } ?: Ink.OFFICIAL
+        return Triple(p.mark, p.bottom, tripInk)
+    }
+
+    /** A collection's days in order, each with the stamps it holds. Trips, events and anniversaries hold sealed days only. */
+    fun entries(c: Collection): List<Pair<Day, List<Stamp>>> = when (c.type) {
+        CollType.THEME -> days.values.sortedBy { it.date }
+            .map { d -> d to d.stamps.filter { it.id in c.ids } }.filter { it.second.isNotEmpty() }
+        CollType.ANNIV -> days.values.filter { c.covers(it.date) }.sortedBy { it.date }
+            .map { d -> d to if (d.sealed) d.stamps else emptyList() }
+        else -> generateSequence(c.from) { it.plusDays(1) }.takeWhile { !it.isAfter(c.to) }.take(366)
+            .map { date -> day(date).let { d -> d to if (d.sealed) d.stamps else emptyList() } }.toList()
+    }
+
+    fun count(c: Collection) = entries(c).sumOf { it.second.size }
+
+    /** The chosen cover if it still belongs, else the first stamp. */
+    fun cover(c: Collection): Pair<Day, Stamp>? {
+        val all = entries(c).flatMap { (d, ss) -> ss.map { d to it } }
+        return all.firstOrNull { it.second.id == c.cover } ?: all.firstOrNull()
+    }
+
+    fun findStamp(id: String): Pair<Day, Stamp>? =
+        days.values.firstNotNullOfOrNull { d -> d.stamps.firstOrNull { it.id == id }?.let { d to it } }
+
+    private fun putCollections(list: List<Collection>) {
+        collections = list
+        viewModelScope.launch(Dispatchers.IO) { collStore.save(list) }
+    }
+
+    /** Creates or replaces; returns the saved collection. */
+    fun saveCollection(c: Collection): Collection {
+        val saved = if (c.id == 0L) c.copy(id = System.currentTimeMillis()) else c
+        putCollections(collections.filterNot { it.id == saved.id } + saved)
+        return saved
+    }
+
+    fun deleteCollection(c: Collection) = putCollections(collections.filterNot { it.id == c.id })
+
+    /** Adds or removes a stamp from a theme. */
+    fun toggleInTheme(theme: Collection, stampId: String) {
+        val ids = if (stampId in theme.ids) theme.ids - stampId else theme.ids + stampId
+        saveCollection(theme.copy(ids = ids, cover = if (theme.cover == stampId && stampId !in ids) null else theme.cover))
+    }
+
+    fun setCover(c: Collection, stampId: String) = saveCollection(c.copy(cover = stampId))
 
     fun stampImage(id: String): ImageBitmap? =
         BitmapFactory.decodeFile(store.stampFile(id).path)?.asImageBitmap()

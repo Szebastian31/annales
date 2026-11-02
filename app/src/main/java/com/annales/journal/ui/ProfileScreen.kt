@@ -91,7 +91,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             Toggle("On this phone only", "No account, no cloud, no analytics", true, null)
         }
         Text(
-            "Annales 0.1.0 · pre-release. Collections, Insights and backups are coming in later builds.",
+            "Annales 0.2.0 · pre-release. Insights and backups are coming in later builds.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }

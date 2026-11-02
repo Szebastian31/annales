@@ -62,7 +62,7 @@ fun DayPage(
         Spacer(Modifier.height(18.dp))
         MoodHorizon(day.mood, enabled = true, onMood = { model.setMood(date, it) })
         Text(
-            "${day.office.ifBlank { model.office }.lowercase().replaceFirstChar { it.titlecase() }} · №${date.dayOfYear} · " +
+            "${prettyOffice(day.office.ifBlank { model.postmarkFor(date).first })} · №${date.dayOfYear} · " +
                 if (day.sealed) "sealed" else "not sealed yet",
             style = SmallStyle, textAlign = TextAlign.End,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 6.dp),
@@ -78,7 +78,7 @@ fun DayPage(
 @Composable
 private fun Stamps(model: AnnalesModel, day: Day, onAdd: () -> Unit, onOpen: (Stamp) -> Unit) {
     val n = day.stamps.size + if (day.canAdd) 1 else 0
-    val w: Dp = when (n) { 1 -> 210.dp; 2 -> 150.dp; else -> 104.dp }
+    val w: Dp = when (n) { 1 -> 210.dp; 2 -> 146.dp; else -> 94.dp } // three must fit a 360 dp phone
     val tilt = listOf(-2.5f, 1.8f, -1f)
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -113,28 +113,41 @@ private fun Stamps(model: AnnalesModel, day: Day, onAdd: () -> Unit, onOpen: (St
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("＋", style = TextStyle(fontSize = 26.sp, color = K.muted))
                     Text(if (day.stamps.isEmpty()) "Add a stamp" else "Another", style = SmallStyle)
-                    Text("${Day.MAX_STAMPS - day.stamps.size} left today", style = SmallStyle.copy(fontSize = 10.sp))
+                    Text("${Day.MAX_STAMPS - day.stamps.size} left", style = SmallStyle.copy(fontSize = 10.sp))
                 }
             }
         }
     }
 }
 
+/** "GLIWICE 1" → "Gliwice 1", "KRAKÓW 1" → "Kraków 1". */
+fun prettyOffice(mark: String) = mark.lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.titlecase() } }
+
 @Composable
 private fun SealBox(model: AnnalesModel, day: Day) {
+    val trip = model.tripOn(day.date)
+    val (mark, bottom, sealInk) = model.postmarkFor(day.date)
     Column(
         Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
             .background(K.surface, RoundedCornerShape(18.dp)).padding(16.dp)
     ) {
-        Text("Postmark ink", style = KickerStyle)
-        Row(Modifier.padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Ink.entries.forEach { ink -> InkChip(ink, ink == model.ink) { model.changeInk(ink) } }
+        if (trip != null) {
+            Text("ON A TRIP · ${trip.name.uppercase()}", style = KickerStyle)
+            Text(
+                "Stamped ${mark}${if (bottom.isNotBlank()) " · $bottom" else ""}, in ${sealInk.label.lowercase()} ink. Change it in the trip's settings.",
+                style = SmallStyle, modifier = Modifier.padding(top = 6.dp),
+            )
+        } else {
+            Text("Postmark ink", style = KickerStyle)
+            Row(Modifier.padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Ink.entries.forEach { ink -> InkChip(ink, ink == model.ink) { model.changeInk(ink) } }
+            }
+            Text(
+                if (model.ink == Ink.OFFICIAL) "Black, the way the post office in ${prettyOffice(model.office)} would stamp it."
+                else "Your own touch: the post office would use black.",
+                style = SmallStyle,
+            )
         }
-        Text(
-            if (model.ink == Ink.OFFICIAL) "Black, the way the post office in ${model.office.lowercase().replaceFirstChar { it.titlecase() }} would stamp it."
-            else "Your own touch: the post office would use black.",
-            style = SmallStyle,
-        )
         Button(
             onClick = { model.seal(day.date) }, enabled = !model.busy,
             colors = ButtonDefaults.buttonColors(containerColor = K.acc),
