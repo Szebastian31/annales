@@ -58,15 +58,15 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(52.dp).background(K.acc, CircleShape), contentAlignment = Alignment.Center) {
-                    Text(model.name.trim().take(1).uppercase().ifBlank { "A" }, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 24.sp, color = K.onAcc))
+                    Text(model.name.trim().take(1).uppercase().ifBlank { "A" }, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 24.sp, color = K.onAcc))
                 }
                 Spacer(Modifier.size(14.dp))
                 Column(Modifier.weight(1f)) {
                     androidx.compose.foundation.text.BasicTextField(
                         model.name, model::changeName, singleLine = true,
-                        textStyle = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 21.sp, color = K.ink),
+                        textStyle = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = K.ink),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(K.acc),
-                        decorationBox = { inner -> Box { if (model.name.isEmpty()) Text("Your name", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 21.sp, color = K.muted)); inner() } },
+                        decorationBox = { inner -> Box { if (model.name.isEmpty()) Text("Your name", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = K.muted)); inner() } },
                     )
                     Text("${prettyOffice(model.office).substringBefore(" ")} · keeping annales since ${model.since.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH))}", style = SmallStyle)
                 }
@@ -74,7 +74,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             Row(Modifier.fillMaxWidth().padding(top = 14.dp)) {
                 listOf(stamps to "stamps", sealed to "days", ins.streak to "streak", model.collections.size to "collections").forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$n", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
+                        Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
                         Text(l, style = SmallStyle.copy(fontSize = 11.sp))
                     }
                 }
@@ -171,7 +171,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             BackupRow(model)
         }
         Text(
-            "Annales 0.6.1 · pre-release.",
+            "Annales 0.6.2 · pre-release.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }
@@ -218,8 +218,8 @@ private fun LookTile(l: Look, on: Boolean, modifier: Modifier, onClick: () -> Un
         Spacer(Modifier.size(4.dp))
         Box(Modifier.weight(1f).height(4.dp).background(Color(l.ink).copy(alpha = .5f), RoundedCornerShape(2.dp)))
     }
-    Text(l.label, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
-    Text(l.about, style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 10.sp, color = Color(l.muted)))
+    Text(l.label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
+    Text(l.about, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(l.muted)))
 }
 
 /** The edge drawn as a little stamp shape. */
@@ -232,7 +232,7 @@ private fun CutTile(key: String, name: String, on: Boolean, modifier: Modifier, 
         val path = com.annales.journal.render.StampRenderer.shape(key, 7, size.width, size.height)
         drawPath(path.asComposePath(), if (on) K.acc else K.muted)
     }
-    Text(name, style = TextStyle(fontSize = 10.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium), maxLines = 1)
+    Text(name, style = TextStyle(fontSize = 10.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold), maxLines = 1)
 }
 
 /**

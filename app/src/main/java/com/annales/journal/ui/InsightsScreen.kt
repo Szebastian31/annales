@@ -60,7 +60,7 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             listOf(ins.streak to "day streak", ins.longest to "longest", ins.stamps to "stamps", ins.places to "places", ins.words to "words")
                 .forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$n", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
+                        Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
                         Text(l, style = SmallStyle.copy(fontSize = 10.sp), textAlign = TextAlign.Center)
                     }
                 }
@@ -76,7 +76,7 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 
         if (ins.felt.isEmpty()) {
             Card {
-                Text("Nothing to read yet", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
+                Text("Nothing to read yet", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
                 Text(
                     "Drag along the horizon on Today to say how a day felt. After a few days, this page shows how your moods move and what tends to come with the good ones.",
                     style = SmallStyle, modifier = Modifier.padding(top = 6.dp),
@@ -135,7 +135,7 @@ private fun Card(content: @Composable () -> Unit) = Column(
 @Composable
 private fun Seg(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, color = if (on) K.acc else K.muted),
+    style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted),
     modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) K.accSoft else Color.Transparent)
         .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 5.dp),
 )
@@ -211,7 +211,7 @@ private fun Connections(ins: Insights) {
                 .clickable { open = if (open == l.name) null else l.name }.padding(12.dp).animateContentSize()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(l.glyph, style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 20.sp, color = K.acc), modifier = Modifier.width(30.dp))
+                Text(l.glyph, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = K.acc), modifier = Modifier.width(30.dp))
                 Column(Modifier.weight(1f)) {
                     Text(l.name, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                     Text(l.sentence, style = SmallStyle)

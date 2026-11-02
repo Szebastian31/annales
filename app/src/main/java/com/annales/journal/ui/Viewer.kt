@@ -131,7 +131,7 @@ private fun ViewerPage(
         }
         val label = title.ifBlank { date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)) }
         Text(
-            label, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 22.sp, color = Color.White),
+            label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = Color.White),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
         )
         Text(
@@ -174,7 +174,7 @@ private fun Themes(model: AnnalesModel, stamp: Stamp, inside: Collection?) {
 @Composable
 private fun DarkChip(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 13.sp, color = if (on) Color(0xFF1F1A16) else Color.White, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium),
+    style = TextStyle(fontSize = 13.sp, color = if (on) Color(0xFF1F1A16) else Color.White, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
     modifier = Modifier.background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF), RoundedCornerShape(99.dp))
         .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp),
 )

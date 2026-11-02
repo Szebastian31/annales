@@ -57,7 +57,7 @@ fun MoodHorizon(moodV: Int?, enabled: Boolean, onMood: (Int) -> Unit, modifier: 
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Bottom) {
             Text(
                 if (has) Moods.names[lv] else "How did it feel?",
-                style = TextStyle(fontFamily = K.serif, fontSize = 23.sp, lineHeight = 26.sp, color = nameCol, fontWeight = FontWeight.Medium),
+                style = TextStyle(fontFamily = K.serif, fontSize = 23.sp, lineHeight = 26.sp, color = nameCol, fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.weight(1f),
             )
             if (!has) Text("drag along the line", style = SmallStyle)
