@@ -59,8 +59,54 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     init {
         if (settings.since.isEmpty()) settings.since = LocalDate.now().toString()
         com.annales.journal.ui.K.look = runCatching { com.annales.journal.ui.Look.valueOf(settings.look) }.getOrDefault(com.annales.journal.ui.Look.KRAFT)
-        viewModelScope.launch { days = withContext(Dispatchers.IO) { store.load() } }
+        viewModelScope.launch {
+            days = withContext(Dispatchers.IO) { store.load() }
+            redrawOldSeals()
+            cleanGallery()
+        }
         viewModelScope.launch { collections = withContext(Dispatchers.IO) { collStore.load() } }
+    }
+
+    /**
+     * Stamps sealed before 0.5.0 were saved without a margin, so their postmarks stop at the paper's edge. Redraw them once
+     * with the postmark they were given (office, text underneath, date, hour, ink), so the ring and wavy lines hang off the edges.
+     */
+    private suspend fun redrawOldSeals() {
+        val old = withContext(Dispatchers.IO) {
+            days.values.filter { it.sealed }.flatMap { d -> d.stamps.map { d to it } }.filter { (_, s) ->
+                val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(store.stampFile(s.id).path, o)
+                o.outWidth in 1..StampRenderer.W
+            }
+        }
+        if (old.isEmpty()) return
+        withContext(Dispatchers.Default) {
+            old.forEach { (d, s) ->
+                val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
+                val hour = if (d.sealedAt > 0) java.time.Instant.ofEpochMilli(d.sealedAt).atZone(java.time.ZoneId.systemDefault()).hour else 12
+                val sealInk = d.ink?.let { runCatching { Ink.valueOf(it) }.getOrNull() } ?: Ink.OFFICIAL
+                val seal = Seal(d.date, hour, d.office.ifBlank { office }, d.bottom.ifBlank { postcode }, sealInk.argb, s.id.hashCode() and 0xFFFF)
+                Photos.writePng(StampRenderer.render(photo, cut, seal, s.id.hashCode()), store.stampFile(s.id))
+                photo.recycle()
+            }
+        }
+        version++
+    }
+
+    /** Once, after 0.5.1: swap the inked copies already in Photos for clean stamps, in place (no new copies). */
+    private suspend fun cleanGallery() {
+        if (settings.cleanedGallery) return
+        withContext(Dispatchers.Default) {
+            days.values.flatMap { it.stamps }.filter { it.gallery.isNotBlank() }.forEach { s ->
+                val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
+                val clean = StampRenderer.clean(photo, cut, s.id.hashCode())
+                val tmp = java.io.File(getApplication<Application>().cacheDir, "${s.id}.png")
+                Photos.writePng(clean, tmp)
+                Photos.overwrite(getApplication<Application>(), tmp, s.gallery)
+                tmp.delete(); clean.recycle(); photo.recycle()
+            }
+        }
+        settings.cleanedGallery = true
     }
 
     val since: LocalDate get() = runCatching { LocalDate.parse(settings.since) }.getOrDefault(LocalDate.now())
@@ -148,9 +194,16 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
                 val seal = Seal(date, hour, mark, bottom, sealInk.argb, s.id.hashCode() and 0xFFFF)
                 val png = store.stampFile(s.id)
                 Photos.writePng(StampRenderer.render(photo, cut, seal, s.id.hashCode()), png)
+                if (saveToPhotos) {
+                    // Photos gets the clean stamp: perforated paper only, no postmark ink, no margin
+                    val clean = StampRenderer.clean(photo, cut, s.id.hashCode())
+                    val tmp = java.io.File(getApplication<Application>().cacheDir, "${s.id}.png")
+                    Photos.writePng(clean, tmp)
+                    clean.recycle()
+                    Photos.saveToGallery(getApplication<Application>(), tmp, "annales-$date-${s.id.take(4)}", s.gallery)?.let { links[s.id] = it }
+                    tmp.delete()
+                }
                 photo.recycle()
-                if (saveToPhotos) Photos.saveToGallery(getApplication<Application>(), png, "annales-$date-${s.id.take(4)}", s.gallery)
-                    ?.let { links[s.id] = it }
             }
         }, done = {
             val now = day(date)

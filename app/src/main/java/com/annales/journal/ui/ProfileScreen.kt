@@ -114,7 +114,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 
         Section("Photos")
         Card {
-            Toggle("Save sealed stamps to Photos", "Each stamp goes into an \"Annales\" album on your phone, with its perforation and postmark", model.saveToPhotos, model::changeSaveToPhotos)
+            Toggle("Save sealed stamps to Photos", "Each stamp goes into an \"Annales\" album on your phone: the clean perforated stamp, without the postmark ink", model.saveToPhotos, model::changeSaveToPhotos)
             Toggle("Keep original photos", "So you can re-crop a stamp any time", model.keepOriginals, model::changeKeepOriginals)
         }
 
@@ -152,7 +152,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             }
         }
         Text(
-            "Annales 0.5.0 · pre-release.",
+            "Annales 0.5.1 · pre-release.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }

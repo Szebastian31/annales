@@ -74,6 +74,9 @@ class Settings(context: Context) {
     var haptics: Boolean
         get() = p.getBoolean("haptics", true)
         set(v) = p.edit().putBoolean("haptics", v).apply()
+    var cleanedGallery: Boolean
+        get() = p.getBoolean("cleanedGallery", false)
+        set(v) = p.edit().putBoolean("cleanedGallery", v).apply()
     var since: String
         get() = p.getString("since", "") ?: ""
         set(v) = p.edit().putString("since", v).apply()

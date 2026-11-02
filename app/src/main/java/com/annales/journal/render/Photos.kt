@@ -35,6 +35,11 @@ object Photos {
     fun writeJpeg(bitmap: Bitmap, file: File) = file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }
     fun writePng(bitmap: Bitmap, file: File) = file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
+    /** Rewrites a photo Annales put into Photos earlier. Does nothing if you've deleted it since. */
+    fun overwrite(context: Context, png: File, link: String) = runCatching {
+        context.contentResolver.openOutputStream(Uri.parse(link), "wt")?.use { out -> png.inputStream().use { it.copyTo(out) } }
+    }
+
     /**
      * Puts a sealed stamp into an "Annales" album in Photos (Android 10+). If [existing] is the link from an earlier seal and
      * that photo is still there, it's overwritten instead of adding a copy. Returns the photo's link, or null where that isn't possible.

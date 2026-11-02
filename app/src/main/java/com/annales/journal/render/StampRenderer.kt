@@ -117,6 +117,15 @@ object StampRenderer {
         return Path(paper).apply { op(holes, Path.Op.DIFFERENCE) }
     }
 
+    /** Just the perforated paper, W × H with no margin and no ink: what goes into Photos. */
+    fun clean(photo: Bitmap, cut: String, seed: Int = 7): Bitmap {
+        val out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.clipPath(shape(cut, seed))
+        c.drawBitmap(photo, null, Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        return out
+    }
+
     /** [photo] is the cropped photo (any size, 4:5). Without a [seal] it's a draft: just the cut paper. */
     fun render(photo: Bitmap, cut: String, seal: Seal?, seed: Int = 7): Bitmap {
         val out = Bitmap.createBitmap(OW, OH, Bitmap.Config.ARGB_8888)
