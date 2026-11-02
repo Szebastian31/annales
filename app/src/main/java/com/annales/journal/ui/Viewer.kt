@@ -61,7 +61,7 @@ import java.util.Locale
  * you came from, so its cover can be set from here.
  */
 @Composable
-fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int, inside: Collection?, onClose: () -> Unit) {
+fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int, inside: Collection?, onEdit: ((LocalDate) -> Unit)? = null, onClose: () -> Unit) {
     var index by remember { mutableIntStateOf(start.coerceIn(0, maxOf(0, items.size - 1))) }
     if (items.isEmpty()) { androidx.compose.runtime.LaunchedEffect(Unit) { onClose() }; return }
     val (date, first) = items[index]
@@ -73,7 +73,7 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
             position = if (items.size > 1) "${index + 1} of ${items.size}" else null,
             onPrev = if (index > 0) ({ index-- }) else null,
             onNext = if (index < items.size - 1) ({ index++ }) else null,
-            onClose = onClose,
+            onClose = onClose, onEdit = onEdit?.let { e -> { e(date) } },
         )
     }
 }
@@ -81,7 +81,7 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
 @Composable
 private fun ViewerPage(
     model: AnnalesModel, date: LocalDate, stamp: Stamp, inside: Collection?, position: String?,
-    onPrev: (() -> Unit)?, onNext: (() -> Unit)?, onClose: () -> Unit,
+    onPrev: (() -> Unit)?, onNext: (() -> Unit)?, onClose: () -> Unit, onEdit: (() -> Unit)? = null,
 ) {
     val day = model.day(date)
     var back by remember { mutableStateOf(false) }
@@ -99,7 +99,7 @@ private fun ViewerPage(
             TextButton(onClick = { saveAndClose() }) { Text("‹ Back", color = Color.White) }
             Spacer(Modifier.weight(1f))
             Text(position ?: if (back) "tap to turn back" else "tap the stamp to turn it over", style = SmallStyle.copy(color = Color(0x99FFFFFF)))
-            Spacer(Modifier.size(12.dp))
+            if (onEdit != null) TextButton(onClick = onEdit) { Text("Edit ✎", color = Color.White, fontWeight = FontWeight.Bold) } else Spacer(Modifier.size(12.dp))
         }
         Box(
             Modifier.weight(1f).fillMaxWidth().pointerInput(onPrev, onNext) {
@@ -212,5 +212,9 @@ private fun Back(model: AnnalesModel, date: LocalDate, width: androidx.compose.u
                 .filter { it.isNotBlank() }.joinToString(" · "),
             style = SmallStyle, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp),
         )
+        postmarkBits(model, day).takeIf { it.isNotEmpty() }?.let { bits ->
+            Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(1.dp).background(K.line))
+            Text(bits.joinToString("  ·  "), style = SmallStyle.copy(color = K.ink), maxLines = 2, modifier = Modifier.padding(top = 10.dp))
+        }
     }
 }

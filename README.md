@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.6.4).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
+> **Pre-release (0.7.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
 
 ---
 
@@ -21,13 +21,13 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 - **Up to three stamps a day.** Pick a photo, choose **Portrait**, **Square** or **Wide**, move and pinch it under the frame, and it comes back with a perforated edge cut from the photo itself.
 - **How did it feel?** Drag along the horizon: it frowns towards Very Unpleasant in violet and smiles towards Very Pleasant in blue, with a glowing orb riding the line. The mood dot sits in the stamp's corner.
 - **One line.** Up to 200 characters about the day, with a few prompts to start from.
-- **Fold it away.** Every section of the day page folds; folded, its header still says what it holds (the mood, the ink, your line).
+- **Stamp first.** The day page is the stamp on its envelope and three rows (state of mind, one line, the postmark), each opening a sheet, then Seal.
 - **What shaped it.** Pick the feelings that fit the mood, and what had the biggest impact (Work, Friends, Travel…).
 - **Seal the day.** In the journal, each stamp gets a Poczta Polska datownik (the office over the top, the postcode underneath, the date bridge and the hour) hanging off its right edge, and wavy cancel lines over the top-left. Every hit is pressed a little differently: angle, pressure and patchy ink.
 - **Inks.** Official black, the way the post office does it, or Post red and Carmine as your own touch.
 - **Saved to Photos.** Sealed stamps go into an **Annales** album as clean perforated stamps, without the postmark ink (Android 10 and later). Re-sealing updates the same photo instead of adding a copy.
 - **Frame it.** Pinch or use the Size slider, see the perforation over the photo, and pick a filter: Natural, Print, Faded, Dusk or Mono.
-- **The Journal.** A calendar of sealed days with trips and events marked in their ink, or Pages: one page per month. Open any day to see it whole on one page (all its stamps, the line, the mood and why, the postmark), then **Edit this day** to add stamps, change it, or re-seal it (the postmark keeps its original office, date and hour).
+- **The Journal.** A calendar of sealed days with trips and events marked in their ink, or Pages: one page per month. Open any day straight on its stamps, full screen, with the day's line under them and the rest on the back; **Edit** opens the day page to add stamps, change it, or re-seal it (the postmark keeps its original office, date and hour).
 - **Collections.** A **trip** (dates and a place: those days are stamped by that city's post office), an **event** (a wedding, a launch), an **anniversary** (one date, every year) or a hand-picked **theme**, like Coffee.
 - **Turn it over.** Open a stamp full screen and tap it to see the back: the date, when it was sealed, the day's one line and how it felt. Swipe through a collection, file a stamp into a theme, or make it the cover.
 - **Insights.** Your streak, your moods over a week, a month or all time, which factors and feelings come with which moods, and gentle connections (trips, your people, weekends, busy days, the full moon), each with how sure it is.

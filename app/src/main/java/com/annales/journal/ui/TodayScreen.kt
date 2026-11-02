@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +27,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -80,9 +84,10 @@ private fun regionOf(model: AnnalesModel, date: LocalDate): String =
         ?: Places.of(prettyOffice(model.day(date).office.ifBlank { model.office }).substringBefore(" ")).region
 
 /**
- * One day, laid out like the mockup's composer: the selected stamp on its envelope, the three slots, state of mind and
- * its tags, one line, the ink, what the postmark will say, and the Seal button. Today and any past day share it.
+ * One day, stamp first: the envelope and its slots, then three rows (state of mind, one line, the postmark) that each
+ * open a sheet, then the Seal button. Today and any past day share it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayPage(
     model: AnnalesModel, date: LocalDate,
@@ -93,147 +98,129 @@ fun DayPage(
     val day = model.day(date)
     val today = date == LocalDate.now()
     var sel by remember(date) { mutableIntStateOf(0) }
+    var sheet by remember(date) { mutableStateOf<String?>(null) }
     androidx.compose.runtime.LaunchedEffect(date) { model.fillIn(date) }
     if (sel > day.stamps.lastIndex) sel = maxOf(0, day.stamps.lastIndex)
     val st = day.stamps.getOrNull(sel)
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 28.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 18.dp, top = 14.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(date.format(kickerDate).uppercase(), style = KickerStyle)
-                Text(
-                    title(if (today) "Today, " else date.format(DateTimeFormatter.ofPattern("d MMMM, ", Locale.ENGLISH)),
-                        if (day.sealed) "sealed" else "not sealed yet"),
-                    style = TitleStyle.copy(fontSize = 33.sp, lineHeight = 35.sp), modifier = Modifier.padding(top = 7.dp),
-                )
-            }
-            YearRing(date)
+        Column(Modifier.padding(start = 22.dp, end = 18.dp, top = 14.dp, bottom = 8.dp)) {
+            Text("№${date.dayOfYear} · ${date.format(kickerDate)}".uppercase(), style = KickerStyle)
+            Text(
+                title(if (today) "Today, " else date.format(DateTimeFormatter.ofPattern("d MMMM, ", Locale.ENGLISH)),
+                    if (day.sealed) "sealed" else "not sealed yet"),
+                style = TitleStyle.copy(fontSize = 30.sp, lineHeight = 33.sp), modifier = Modifier.padding(top = 6.dp),
+            )
         }
 
         Envelope(model, day, st, onAdd) { st?.let(onOpen) }
         Strip(model, day, sel, onSelect = { sel = it }, onAdd = onAdd)
-        if (st != null) Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (model.hasOriginal(st)) Act("Re-crop") { onRecrop(st) }
-            Act("Replace") { onReplace(st) }
-            Act("Remove", warn = true) { model.removeStamp(date, st) }
+        if (st != null) Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
+            if (model.hasOriginal(st)) Quiet("Re-crop") { onRecrop(st) }
+            Quiet("Replace") { onReplace(st) }
+            Quiet("Remove", warn = true) { model.removeStamp(date, st) }
         }
 
-        Fold("mood", "State of mind", day.mood?.let { com.annales.journal.data.Moods.names[it] } ?: "how you felt ${if (today) "today" else "that day"}") {
-            MoodHorizon(day.moodV ?: day.mood?.let { it * 100 / 6 }, enabled = true, onMood = { model.setMoodV(date, it) })
-        }
-        if (day.mood != null) Fold("feels", "Feelings & impact", (day.feels + day.factors).size.let { if (it == 0) "none chosen" else "$it chosen" }) {
-            Feelings(model, day)
+        Column(Modifier.padding(horizontal = 16.dp).padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(K.surface)) {
+            val mood = day.mood
+            Step(
+                lead = { if (mood != null) Box(Modifier.size(16.dp).background(Color(com.annales.journal.data.Moods.color(mood)), CircleShape)) else Glyph("◐") },
+                label = "State of mind",
+                value = mood?.let { com.annales.journal.data.Moods.names[it] + (day.feels.takeIf { f -> f.isNotEmpty() }?.let { f -> " · " + f.take(2).joinToString(", ") } ?: "") }
+                    ?: "How did ${if (today) "today" else "it"} feel?",
+                done = mood != null,
+            ) { sheet = "mood" }
+            StepLine()
+            Step({ Glyph("✎") }, "One line", day.line.ifBlank { "A line about the day" }, done = day.line.isNotBlank(), italic = day.line.isNotBlank()) { sheet = "line" }
+            StepLine()
+            Step({ Glyph("✉") }, "The postmark", postmarkBits(model, day).joinToString("  ·  ").ifBlank { "Ink, weather, music, money" }, done = true) { sheet = "postmark" }
         }
 
-        Fold("line", "One line", day.line.ifBlank { "not written yet" }) { OneLine(model, day, today) }
-
-        Fold("ink", "Postmark ink", model.inkOn(date).let { if (it == Ink.OFFICIAL) "Official" else it.label }, startOpen = false) {
-            Inks(model, day)
-        }
-
-        Fold("postmark", "The postmark", if (day.sealed) "as it was stamped" else "filled in for you", startOpen = false) {
-            PostmarkCard(model, day)
-            if (day.sealed && !today) Text(
-                "🔒  The recorded postmark stays as it was on ${date.format(capDate)}: the office, date and hour it actually said. You can still change its ink, stamps and words.",
-                style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
-            )
-        }
         SealButton(model, day, today)
         if (today) OnThisDay(model, date, onOpenPast)
     }
-}
 
-/** Which sections are folded away. Kept while the app is open, so a section you closed stays closed on every day. */
-private val folds = androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
-
-/** A section header you can tap to fold its content away; when folded, [right] says what's inside. */
-@Composable
-private fun Fold(key: String, left: String, right: String = "", startOpen: Boolean = true, content: @Composable () -> Unit) {
-    val open = folds[key] ?: startOpen
-    Row(
-        Modifier.fillMaxWidth().padding(top = 8.dp).clickable { folds[key] = !open }
-            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(left.uppercase(), style = KickerStyle)
-        Text(
-            right, style = SmallStyle, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End,
-            modifier = Modifier.weight(1f).padding(start = 12.dp),
-        )
-        Text(if (open) "▴" else "▾", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = K.acc), modifier = Modifier.padding(start = 10.dp))
-    }
-    androidx.compose.animation.AnimatedVisibility(open) { Column { content() } }
-    Box(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp).fillMaxWidth().height(1.dp).background(K.line))
-}
-
-/**
- * A day as it was, all on one page: every stamp, the one line, how it felt and why, and what the postmark recorded.
- * This is what the Journal opens; "Edit this day" goes to the full page.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun DaySummary(model: AnnalesModel, date: LocalDate, onEdit: () -> Unit, onOpen: (Stamp) -> Unit, modifier: Modifier = Modifier) {
-    val day = model.day(date)
-    androidx.compose.runtime.LaunchedEffect(date) { model.fillIn(date) }
-    val n = day.stamps.size
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 28.dp)) {
-        Column(Modifier.padding(start = 22.dp, end = 18.dp, top = 6.dp, bottom = 6.dp)) {
-            Text("№${date.dayOfYear} · ${date.format(kickerDate)}".uppercase(), style = KickerStyle)
-            Text(
-                title(date.format(DateTimeFormatter.ofPattern("d MMMM, ", Locale.ENGLISH)), if (day.sealed) "sealed" else "not sealed yet"),
-                style = TitleStyle, modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-
-        if (n > 0) {
-            Box(
-                Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                    .background(K.page).border(1.dp, K.line, RoundedCornerShape(20.dp)).paperGrain().padding(vertical = 22.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(if (n == 3) 6.dp else 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    day.stamps.forEachIndexed { i, s ->
-                        Box(Modifier.clickable { onOpen(s) }) {
-                            StampView(model, s.id, date.dayOfYear, day.mood, when (n) { 1 -> 170.dp; 2 -> 128.dp; else -> 96.dp },
-                                rotation = if (day.sealed) listOf(-1.5f, 1.2f, -.8f)[i] else 0f, bleed = n == 1)
-                        }
+    sheet?.let { which ->
+        ModalBottomSheet(
+            onDismissRequest = { sheet = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = K.bg, contentColor = K.ink,
+        ) {
+            Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(bottom = 24.dp)) {
+                when (which) {
+                    "mood" -> {
+                        SheetTitle("State of mind", "how you felt overall ${if (today) "today" else "that day"}")
+                        MoodHorizon(day.moodV ?: day.mood?.let { it * 100 / 6 }, enabled = true, onMood = { model.setMoodV(date, it) })
+                        if (day.mood != null) Feelings(model, day)
+                    }
+                    "line" -> {
+                        SheetTitle("One line", "up to 200 characters")
+                        OneLine(model, day, today)
+                    }
+                    else -> {
+                        SheetTitle("The postmark", if (day.sealed) "as it was stamped" else "filled in for you")
+                        Sec("Ink", model.inkOn(date).let { if (it == Ink.OFFICIAL) "Official" else it.label })
+                        Inks(model, day)
+                        Spacer(Modifier.height(10.dp))
+                        PostmarkCard(model, day)
+                        if (day.sealed && !today) Text(
+                            "🔒  The recorded postmark stays as it was on ${date.format(capDate)}: the office, date and hour it actually said. You can still change its ink, stamps and words.",
+                            style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
+                        )
                     }
                 }
-            }
-            Text("Tap a stamp to see it large", style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp))
-        }
-
-        if (day.line.isNotBlank()) Text(
-            "“${day.line}”",
-            style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 21.sp, lineHeight = 28.sp, color = K.ink),
-            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(18.dp),
-        )
-
-        Sec("State of mind")
-        Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                day.mood?.let { Box(Modifier.size(14.dp).background(Color(com.annales.journal.data.Moods.color(it)), CircleShape)); Spacer(Modifier.size(10.dp)) }
-                Text(day.mood?.let { com.annales.journal.data.Moods.names[it] } ?: "No state of mind chosen",
-                    style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = day.mood?.let { Color(com.annales.journal.data.Moods.readable(it, K.ink.toArgb())) } ?: K.muted))
-            }
-            if (day.feels.isNotEmpty()) {
-                Text("Felt", style = KickerStyle, modifier = Modifier.padding(top = 14.dp, bottom = 7.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { day.feels.forEach { Badge(it, filled = true) } }
-            }
-            if (day.factors.isNotEmpty()) {
-                Text("Because of", style = KickerStyle, modifier = Modifier.padding(top = 14.dp, bottom = 7.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { day.factors.forEach { Badge(it, filled = false) } }
+                Button(
+                    onClick = { sheet = null }, shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = K.ink, contentColor = K.surface),
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(top = 18.dp).fillMaxWidth().height(50.dp),
+                ) { Text("Done", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp) }
             }
         }
-
-        Sec("The postmark", if (day.sealed) "as it was stamped" else "filled in for you")
-        PostmarkCard(model, day)
-
-        OutlinedButton(
-            onClick = onEdit, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.5.dp, K.ink),
-            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 22.dp).fillMaxWidth().height(52.dp),
-        ) { Text(if (day.sealed) "Edit this day" else "Finish this day", color = K.ink, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp) }
     }
+}
+
+/** The short version of the postmark, for the row on the day page and the back of a stamp: weather, music, money, tone. */
+internal fun postmarkBits(model: AnnalesModel, day: Day): List<String> {
+    val x = day.extras
+    return listOfNotNull(
+        x["wx.code"]?.toIntOrNull()?.let { c -> "${SKY_GLYPH[com.annales.journal.data.Siblings.describe(c).second] ?: "☁"} ${x["wx.hi"]}°" },
+        x["music.minutes"]?.let { "♪ $it min" },
+        x["money.spent"]?.let { "¤ $it" },
+        x["augur.tone"]?.let { "✶ $it" },
+    )
+}
+
+@Composable
+private fun Step(lead: @Composable () -> Unit, label: String, value: String, done: Boolean, italic: Boolean = false, onClick: () -> Unit) = Row(
+    Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 16.dp),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { lead() }
+    Column(Modifier.weight(1f).padding(start = 14.dp)) {
+        Text(label.uppercase(), style = KickerStyle)
+        Text(
+            value, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp),
+            style = if (italic) TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 22.sp, color = K.ink)
+            else BodyStyle.copy(fontSize = 16.sp, color = if (done) K.ink else K.muted),
+        )
+    }
+    Text("›", style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = K.muted), modifier = Modifier.padding(start = 10.dp))
+}
+
+@Composable
+private fun StepLine() = Box(Modifier.padding(start = 56.dp).fillMaxWidth().height(1.dp).background(K.line))
+
+@Composable
+private fun Glyph(g: String) = Text(g, style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = K.acc))
+
+@Composable
+private fun Quiet(label: String, warn: Boolean = false, onClick: () -> Unit) = androidx.compose.material3.TextButton(onClick = onClick) {
+    Text(label, style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (warn) Color(0xFFB4483A) else K.acc))
+}
+
+@Composable
+private fun SheetTitle(title: String, sub: String) = Column(Modifier.padding(start = 22.dp, end = 18.dp, bottom = 12.dp)) {
+    Text(title, style = TitleStyle.copy(fontSize = 26.sp, lineHeight = 30.sp))
+    Text(sub, style = SmallStyle, modifier = Modifier.padding(top = 3.dp))
 }
 
 @Composable

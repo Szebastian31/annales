@@ -12,8 +12,8 @@ android {
         applicationId = "com.annales.journal"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.6.4"
+        versionCode = 12
+        versionName = "0.7.0"
     }
 
     // The family's debug key (copied from Fidelis), so every build installs over the last one.
