@@ -130,10 +130,15 @@ fun AnnalesApp(model: AnnalesModel) {
                 val coll = openColl?.let { id -> model.collections.firstOrNull { it.id == id } }
                 when {
                     day != null -> Column {
-                        TextButton(onClick = { openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
-                            Text("‹ ${coll?.name ?: "Journal"}", color = K.acc)
+                        // the Journal opens a day as a summary; "Edit this day" (or a day with nothing in it yet) shows the full page
+                        val blank = model.day(day).let { it.stamps.isEmpty() && it.mood == null && it.line.isBlank() }
+                        var edit by remember(day) { mutableStateOf(blank) }
+                        BackHandler(enabled = edit && !blank && !overlay) { edit = false }
+                        TextButton(onClick = { if (edit && !blank) edit = false else openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
+                            Text(if (edit && !blank) "‹ Summary" else "‹ ${coll?.name ?: "Journal"}", color = K.acc)
                         }
-                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(day, it) }, onRecrop = { recrop(day, it) })
+                        if (edit) DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(day, it) }, onRecrop = { recrop(day, it) })
+                        else DaySummary(model, day, onEdit = { edit = true }, onOpen = { viewDay(day, it) })
                     }
                     coll != null -> CollectionScreen(
                         model, coll,

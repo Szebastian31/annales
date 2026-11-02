@@ -134,7 +134,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleFeel(date: LocalDate, f: String) = edit(date) { d -> d.copy(feels = if (f in d.feels) d.feels - f else d.feels + f) }
 
-    fun setLine(date: LocalDate, text: String) = edit(date) { it.copy(line = text.take(120)) }
+    fun setLine(date: LocalDate, text: String) = edit(date) { it.copy(line = text.take(200)) }
 
     /** This day's ink, falling back to a trip's ink, then the default in Profile. */
     fun inkOn(date: LocalDate): Ink = day(date).ink?.let { runCatching { Ink.valueOf(it) }.getOrNull() } ?: postmarkFor(date).third

@@ -21,7 +21,7 @@ data class Day(
     val feels: List<String> = emptyList(),
     /** Where the slider sits, 0..100; [mood] is the nearest of the seven steps. */
     val moodV: Int? = null,
-    /** "One line" about the day, up to 120 characters. */
+    /** "One line" about the day, up to 200 characters. */
     val line: String = "",
     /** This day's postmark ink ([Ink] name), or null for the default from Profile. */
     val ink: String? = null,

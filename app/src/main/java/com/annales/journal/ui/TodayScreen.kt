@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -117,26 +118,131 @@ fun DayPage(
             Act("Remove", warn = true) { model.removeStamp(date, st) }
         }
 
-        Sec("State of mind", "how you felt overall ${if (today) "today" else "that day"}")
-        MoodHorizon(day.moodV ?: day.mood?.let { it * 100 / 6 }, enabled = true, onMood = { model.setMoodV(date, it) })
-        if (day.mood != null) Feelings(model, day)
+        Fold("mood", "State of mind", day.mood?.let { com.annales.journal.data.Moods.names[it] } ?: "how you felt ${if (today) "today" else "that day"}") {
+            MoodHorizon(day.moodV ?: day.mood?.let { it * 100 / 6 }, enabled = true, onMood = { model.setMoodV(date, it) })
+        }
+        if (day.mood != null) Fold("feels", "Feelings & impact", (day.feels + day.factors).size.let { if (it == 0) "none chosen" else "$it chosen" }) {
+            Feelings(model, day)
+        }
 
-        Sec("One line")
-        OneLine(model, day, today)
+        Fold("line", "One line", day.line.ifBlank { "not written yet" }) { OneLine(model, day, today) }
 
-        Sec("Postmark ink", model.inkOn(date).let { if (it == Ink.OFFICIAL) "Official" else it.label })
-        Inks(model, day)
+        Fold("ink", "Postmark ink", model.inkOn(date).let { if (it == Ink.OFFICIAL) "Official" else it.label }, startOpen = false) {
+            Inks(model, day)
+        }
 
-        Sec("The postmark", if (day.sealed) "as it was stamped" else "filled in for you")
-        PostmarkCard(model, day)
-        if (day.sealed && !today) Text(
-            "🔒  The recorded postmark stays as it was on ${date.format(capDate)}: the office, date and hour it actually said. You can still change its ink, stamps and words.",
-            style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
-        )
+        Fold("postmark", "The postmark", if (day.sealed) "as it was stamped" else "filled in for you", startOpen = false) {
+            PostmarkCard(model, day)
+            if (day.sealed && !today) Text(
+                "🔒  The recorded postmark stays as it was on ${date.format(capDate)}: the office, date and hour it actually said. You can still change its ink, stamps and words.",
+                style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
+            )
+        }
         SealButton(model, day, today)
         if (today) OnThisDay(model, date, onOpenPast)
     }
 }
+
+/** Which sections are folded away. Kept while the app is open, so a section you closed stays closed on every day. */
+private val folds = androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
+
+/** A section header you can tap to fold its content away; when folded, [right] says what's inside. */
+@Composable
+private fun Fold(key: String, left: String, right: String = "", startOpen: Boolean = true, content: @Composable () -> Unit) {
+    val open = folds[key] ?: startOpen
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp).clickable { folds[key] = !open }
+            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(left.uppercase(), style = KickerStyle)
+        Text(
+            right, style = SmallStyle, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            modifier = Modifier.weight(1f).padding(start = 12.dp),
+        )
+        Text(if (open) "▴" else "▾", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = K.acc), modifier = Modifier.padding(start = 10.dp))
+    }
+    androidx.compose.animation.AnimatedVisibility(open) { Column { content() } }
+    Box(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp).fillMaxWidth().height(1.dp).background(K.line))
+}
+
+/**
+ * A day as it was, all on one page: every stamp, the one line, how it felt and why, and what the postmark recorded.
+ * This is what the Journal opens; "Edit this day" goes to the full page.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun DaySummary(model: AnnalesModel, date: LocalDate, onEdit: () -> Unit, onOpen: (Stamp) -> Unit, modifier: Modifier = Modifier) {
+    val day = model.day(date)
+    androidx.compose.runtime.LaunchedEffect(date) { model.fillIn(date) }
+    val n = day.stamps.size
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 28.dp)) {
+        Column(Modifier.padding(start = 22.dp, end = 18.dp, top = 6.dp, bottom = 6.dp)) {
+            Text("№${date.dayOfYear} · ${date.format(kickerDate)}".uppercase(), style = KickerStyle)
+            Text(
+                title(date.format(DateTimeFormatter.ofPattern("d MMMM, ", Locale.ENGLISH)), if (day.sealed) "sealed" else "not sealed yet"),
+                style = TitleStyle, modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+
+        if (n > 0) {
+            Box(
+                Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                    .background(K.page).border(1.dp, K.line, RoundedCornerShape(20.dp)).paperGrain().padding(vertical = 22.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(if (n == 3) 6.dp else 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    day.stamps.forEachIndexed { i, s ->
+                        Box(Modifier.clickable { onOpen(s) }) {
+                            StampView(model, s.id, date.dayOfYear, day.mood, when (n) { 1 -> 170.dp; 2 -> 128.dp; else -> 96.dp },
+                                rotation = if (day.sealed) listOf(-1.5f, 1.2f, -.8f)[i] else 0f, bleed = n == 1)
+                        }
+                    }
+                }
+            }
+            Text("Tap a stamp to see it large", style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp))
+        }
+
+        if (day.line.isNotBlank()) Text(
+            "“${day.line}”",
+            style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 21.sp, lineHeight = 28.sp, color = K.ink),
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(18.dp),
+        )
+
+        Sec("State of mind")
+        Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                day.mood?.let { Box(Modifier.size(14.dp).background(Color(com.annales.journal.data.Moods.color(it)), CircleShape)); Spacer(Modifier.size(10.dp)) }
+                Text(day.mood?.let { com.annales.journal.data.Moods.names[it] } ?: "No state of mind chosen",
+                    style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = day.mood?.let { Color(com.annales.journal.data.Moods.readable(it, K.ink.toArgb())) } ?: K.muted))
+            }
+            if (day.feels.isNotEmpty()) {
+                Text("Felt", style = KickerStyle, modifier = Modifier.padding(top = 14.dp, bottom = 7.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { day.feels.forEach { Badge(it, filled = true) } }
+            }
+            if (day.factors.isNotEmpty()) {
+                Text("Because of", style = KickerStyle, modifier = Modifier.padding(top = 14.dp, bottom = 7.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { day.factors.forEach { Badge(it, filled = false) } }
+            }
+        }
+
+        Sec("The postmark", if (day.sealed) "as it was stamped" else "filled in for you")
+        PostmarkCard(model, day)
+
+        OutlinedButton(
+            onClick = onEdit, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.5.dp, K.ink),
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 22.dp).fillMaxWidth().height(52.dp),
+        ) { Text(if (day.sealed) "Edit this day" else "Finish this day", color = K.ink, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp) }
+    }
+}
+
+@Composable
+private fun Badge(label: String, filled: Boolean) = Text(
+    label,
+    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (filled) K.surface else K.ink),
+    modifier = Modifier.background(if (filled) K.ink else Color.Transparent, RoundedCornerShape(99.dp))
+        .border(1.dp, if (filled) K.ink else K.line, RoundedCornerShape(99.dp)).padding(horizontal = 11.dp, vertical = 7.dp),
+)
 
 @Composable
 private fun Sec(left: String, right: String = "") = Row(
@@ -189,7 +295,7 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
             }
         }
         val cap = if (day.sealed) "№${day.date.dayOfYear} · ${day.date.format(capDate)}" else "№${day.date.dayOfYear} · not sealed yet"
-        val t = st?.title?.ifBlank { null } ?: if (day.sealed) day.line.ifBlank { null } else null
+        val t = day.line.ifBlank { null }
         Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 12.dp).width(190.dp)) {
             Text(cap.uppercase(), style = KickerStyle.copy(fontSize = 11.5.sp, letterSpacing = 1.3.sp))
             if (t != null) Text(t, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.ink),
@@ -291,7 +397,7 @@ private fun Feelings(model: AnnalesModel, day: Day) {
     }
 }
 
-/** "One line": three prompts to start from, and up to 120 characters in italic serif. */
+/** "One line": three prompts to start from, and up to 200 characters in italic serif. */
 @Composable
 private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
     var hint by remember(day.date) { mutableStateOf(if (today) "Leaves everywhere, tea at Ola's…" else "What do you remember about this day?") }
@@ -309,12 +415,12 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(16.dp)) {
         val style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 18.sp, lineHeight = 24.sp, color = K.ink)
         BasicTextField(
-            text, { if (it.length <= 120) { text = it; model.setLine(day.date, it) } },
+            text, { if (it.length <= 200) { text = it; model.setLine(day.date, it) } },
             textStyle = style, cursorBrush = SolidColor(K.acc), minLines = 2,
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner -> Box { if (text.isEmpty()) Text(hint, style = style.copy(color = K.muted.copy(alpha = .75f))); inner() } },
         )
-        Text("${text.length} / 120", style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.End).padding(top = 4.dp))
+        Text("${text.length} / 200", style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.End).padding(top = 4.dp))
     }
 }
 
@@ -425,7 +531,7 @@ fun InkChip(ink: Ink, selected: Boolean, label: String = ink.label, onClick: () 
     }
 }
 
-/** The same date in an earlier year: its first stamp, how it felt, and its title. */
+/** The same date in an earlier year: its first stamp, how it felt, and its one line. */
 @Composable
 private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, Stamp) -> Unit) {
     val past = model.onThisDay(date).firstOrNull() ?: return
@@ -442,7 +548,7 @@ private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, 
         Column(Modifier.weight(1f)) {
             Text((if (years == 1) "A year ago" else "$years years ago") + (past.mood?.let { " · ${com.annales.journal.data.Moods.names[it]}" } ?: ""), style = SmallStyle)
             Text(
-                s.title.ifBlank { past.line.ifBlank { past.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH)) } },
+                past.line.ifBlank { past.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH)) },
                 style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = K.ink), maxLines = 2,
             )
             if (past.stamps.size > 1) Text("${past.stamps.size} stamps that day", style = SmallStyle)

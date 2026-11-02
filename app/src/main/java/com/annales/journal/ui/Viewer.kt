@@ -42,6 +42,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
@@ -64,7 +65,7 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
     var index by remember { mutableIntStateOf(start.coerceIn(0, maxOf(0, items.size - 1))) }
     if (items.isEmpty()) { androidx.compose.runtime.LaunchedEffect(Unit) { onClose() }; return }
     val (date, first) = items[index]
-    // re-read the stamp so titles and notes saved a moment ago show up
+    // re-read the stamp, in case it was changed a moment ago
     val stamp = model.day(date).stamps.firstOrNull { it.id == first.id } ?: first
     key(stamp.id) {
         ViewerPage(
@@ -86,10 +87,7 @@ private fun ViewerPage(
     var back by remember { mutableStateOf(false) }
     val turn by animateFloatAsState(if (back) 180f else 0f, tween(450), label = "flip")
     val width = (LocalConfiguration.current.screenWidthDp * .78f).dp
-    var title by remember(stamp.id) { mutableStateOf(stamp.title) }
-    var note by remember(stamp.id) { mutableStateOf(stamp.note) }
-    fun keep() { if (title != stamp.title || note != stamp.note) model.updateStamp(date, stamp.copy(title = title, note = note)) }
-    fun saveAndClose() { keep(); onClose() }
+    fun saveAndClose() = onClose()
     androidx.activity.compose.BackHandler { saveAndClose() }
     var drag by remember { mutableFloatStateOf(0f) }
 
@@ -108,7 +106,7 @@ private fun ViewerPage(
                 detectHorizontalDragGestures(
                     onDragEnd = {
                         val go = if (drag > 120f) onPrev else if (drag < -120f) onNext else null
-                        if (go != null) { keep(); go() }
+                        if (go != null) go()
                         drag = 0f
                     },
                     onDragCancel = { drag = 0f },
@@ -123,22 +121,30 @@ private fun ViewerPage(
                 if (turn <= 90f) {
                     StampView(model, stamp.id, date.dayOfYear, day.mood, width)
                 } else {
-                    Back(model, date, title, note, { title = it }, { note = it }, width, Modifier.graphicsLayer { rotationY = 180f })
+                    Back(model, date, width, Modifier.graphicsLayer { rotationY = 180f })
                 }
             }
-            onPrev?.let { Arrow("‹", Modifier.align(Alignment.CenterStart)) { keep(); it() } }
-            onNext?.let { Arrow("›", Modifier.align(Alignment.CenterEnd)) { keep(); it() } }
+            onPrev?.let { Arrow("‹", Modifier.align(Alignment.CenterStart)) { it() } }
+            onNext?.let { Arrow("›", Modifier.align(Alignment.CenterEnd)) { it() } }
         }
-        val label = title.ifBlank { date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)) }
+        val label = date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
         Text(
             label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = Color.White),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
         )
         Text(
-            listOfNotNull(day.mood?.let { Moods.names[it] }, if (day.sealed) "sealed in ${day.office.ifBlank { model.office }}" else "not sealed yet")
+            listOfNotNull(day.mood?.let { Moods.names[it] }, if (day.sealed) "sealed in ${prettyOffice(day.office.ifBlank { model.office })}" else "not sealed yet")
                 .joinToString(" · "),
             style = SmallStyle.copy(color = Color(0xB3FFFFFF)),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp),
+        )
+        // the day's one line, on every stamp of that day
+        if (day.line.isNotBlank() && !back) Text(
+            "“${day.line}”",
+            style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 17.sp, lineHeight = 23.sp,
+                color = Color.White, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp).padding(top = 10.dp),
         )
         Themes(model, stamp, inside)
     }
@@ -179,33 +185,32 @@ private fun DarkChip(label: String, on: Boolean, onClick: () -> Unit) = Text(
         .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp),
 )
 
+/** The back of the stamp: the day it belongs to, its one line, and how it felt. Edited on the day's page, not here. */
 @Composable
-private fun Back(
-    model: AnnalesModel, date: LocalDate, title: String, note: String,
-    onTitle: (String) -> Unit, onNote: (String) -> Unit, width: androidx.compose.ui.unit.Dp, modifier: Modifier,
-) {
+private fun Back(model: AnnalesModel, date: LocalDate, width: androidx.compose.ui.unit.Dp, modifier: Modifier) {
     val day = model.day(date)
     val sealedAt = if (day.sealed && day.sealedAt > 0)
         Instant.ofEpochMilli(day.sealedAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm", Locale.ENGLISH)) else null
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = K.acc, unfocusedBorderColor = K.line, focusedTextColor = K.ink, unfocusedTextColor = K.ink,
-        cursorColor = K.acc, focusedLabelColor = K.acc, unfocusedLabelColor = K.muted,
-    )
-    Column(
-        modifier.size(width, width * 1.25f).background(K.surface).padding(18.dp),
-    ) {
-        Text("№${date.dayOfYear} · ${date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))}", style = KickerStyle)
-        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            day.mood?.let { Box(Modifier.size(12.dp).background(Color(Moods.color(it)), CircleShape)); Spacer(Modifier.size(8.dp)) }
-            Text(day.mood?.let { Moods.names[it] } ?: "No mood set", style = BodyStyle)
-        }
+    Column(modifier.size(width, width * 1.25f).background(K.surface).padding(20.dp)) {
+        Text("№${date.dayOfYear} · ${date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))}".uppercase(), style = KickerStyle)
         Text(
-            if (sealedAt != null) "Sealed $sealedAt · ${day.office}" else "Not sealed yet",
+            if (sealedAt != null) "Sealed $sealedAt · ${prettyOffice(day.office)}" else "Not sealed yet",
             style = SmallStyle, modifier = Modifier.padding(top = 4.dp),
         )
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(title, onTitle, label = { Text("Title") }, singleLine = true, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(note, onNote, label = { Text("Note") }, colors = fieldColors, modifier = Modifier.fillMaxWidth().weight(1f))
+        Text(
+            day.line.ifBlank { "No line written for this day." }.let { if (day.line.isBlank()) it else "“$it”" },
+            style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, lineHeight = 27.sp,
+                color = if (day.line.isBlank()) K.muted else K.ink),
+            modifier = Modifier.padding(top = 18.dp).weight(1f),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            day.mood?.let { Box(Modifier.size(12.dp).background(Color(Moods.color(it)), CircleShape)); Spacer(Modifier.size(8.dp)) }
+            Text(day.mood?.let { Moods.names[it] } ?: "No mood set", style = BodyStyle.copy(fontWeight = FontWeight.Bold))
+        }
+        if (day.feels.isNotEmpty() || day.factors.isNotEmpty()) Text(
+            listOf(day.feels.joinToString(", "), day.factors.joinToString(", ").let { if (it.isBlank()) "" else "because of $it" })
+                .filter { it.isNotBlank() }.joinToString(" · "),
+            style = SmallStyle, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }

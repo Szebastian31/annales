@@ -171,7 +171,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             BackupRow(model)
         }
         Text(
-            "Annales 0.6.3 · pre-release.",
+            "Annales 0.6.4 · pre-release.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }
