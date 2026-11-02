@@ -75,7 +75,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                 listOf(stamps to "stamps", sealed to "days", ins.streak to "streak", model.collections.size to "collections").forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
-                        Text(l, style = SmallStyle.copy(fontSize = 11.sp))
+                        Text(l, style = SmallStyle.copy(fontSize = 12.5.sp))
                     }
                 }
             }
@@ -153,7 +153,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                         Text(app.name, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                         Text(app.what, style = SmallStyle)
                     }
-                    Text(status.first, style = SmallStyle.copy(fontSize = 11.sp, color = status.second, fontWeight = FontWeight.Bold))
+                    Text(status.first, style = SmallStyle.copy(fontSize = 12.5.sp, color = status.second, fontWeight = FontWeight.Bold))
                     if (has) Text("  ›", style = BodyStyle.copy(color = K.muted))
                 }
             }
@@ -171,7 +171,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             BackupRow(model)
         }
         Text(
-            "Annales 0.6.2 · pre-release.",
+            "Annales 0.6.3 · pre-release.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }
@@ -181,8 +181,8 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 private fun Section(name: String, right: String = "") = Row(
     Modifier.fillMaxWidth().padding(start = 22.dp, end = 22.dp, top = 22.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically,
 ) {
-    Text(name.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp), modifier = Modifier.weight(1f))
-    if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 11.sp))
+    Text(name.uppercase(), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
+    if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 12.5.sp))
 }
 
 @Composable
@@ -219,7 +219,7 @@ private fun LookTile(l: Look, on: Boolean, modifier: Modifier, onClick: () -> Un
         Box(Modifier.weight(1f).height(4.dp).background(Color(l.ink).copy(alpha = .5f), RoundedCornerShape(2.dp)))
     }
     Text(l.label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
-    Text(l.about, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(l.muted)))
+    Text(l.about, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(l.muted)))
 }
 
 /** The edge drawn as a little stamp shape. */
@@ -232,7 +232,7 @@ private fun CutTile(key: String, name: String, on: Boolean, modifier: Modifier, 
         val path = com.annales.journal.render.StampRenderer.shape(key, 7, size.width, size.height)
         drawPath(path.asComposePath(), if (on) K.acc else K.muted)
     }
-    Text(name, style = TextStyle(fontSize = 10.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold), maxLines = 1)
+    Text(name, style = TextStyle(fontSize = 12.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold), maxLines = 1)
 }
 
 /**

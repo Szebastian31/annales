@@ -142,8 +142,8 @@ fun DayPage(
 private fun Sec(left: String, right: String = "") = Row(
     Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically,
 ) {
-    Text(left.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp), modifier = Modifier.weight(1f))
-    if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 11.sp))
+    Text(left.uppercase(), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
+    if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 12.5.sp))
 }
 
 /** The day of the year as a ring filling up, like the mockup's corner badge. */
@@ -158,7 +158,7 @@ private fun YearRing(date: LocalDate) {
             drawArc(K.acc, -90f, 360f * date.dayOfYear / total, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
         }
         Text("${date.dayOfYear}", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = K.acc))
-        Text("OF $total", style = KickerStyle.copy(fontSize = 7.5.sp), modifier = Modifier.align(Alignment.BottomCenter).offset(y = 12.dp))
+        Text("OF $total", style = KickerStyle.copy(fontSize = 9.5.sp), modifier = Modifier.align(Alignment.BottomCenter).offset(y = 12.dp))
     }
 }
 
@@ -191,8 +191,8 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
         val cap = if (day.sealed) "№${day.date.dayOfYear} · ${day.date.format(capDate)}" else "№${day.date.dayOfYear} · not sealed yet"
         val t = st?.title?.ifBlank { null } ?: if (day.sealed) day.line.ifBlank { null } else null
         Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 12.dp).width(190.dp)) {
-            Text(cap.uppercase(), style = KickerStyle.copy(fontSize = 9.5.sp, letterSpacing = 1.3.sp))
-            if (t != null) Text(t, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.ink),
+            Text(cap.uppercase(), style = KickerStyle.copy(fontSize = 11.5.sp, letterSpacing = 1.3.sp))
+            if (t != null) Text(t, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.ink),
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
         }
         Row(
@@ -202,7 +202,7 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
         ) {
             Box(Modifier.size(8.dp).background(Color(ink.argb), CircleShape))
             Spacer(Modifier.size(5.dp))
-            Text(regionOf(model, day.date).uppercase(), style = KickerStyle.copy(fontSize = 9.sp, letterSpacing = 1.1.sp))
+            Text(regionOf(model, day.date).uppercase(), style = KickerStyle.copy(fontSize = 11.sp, letterSpacing = 1.1.sp))
         }
     }
 }
@@ -240,12 +240,12 @@ private fun Strip(model: AnnalesModel, day: Day, sel: Int, onSelect: (Int) -> Un
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("＋", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
-                Text(if (n > 0) "Add" else "Add a stamp", style = SmallStyle.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                Text(if (n > 0) "Add" else "Add a stamp", style = SmallStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
             }
         }
         Column(Modifier.weight(1f)) {
-            Text("$n of 3 stamps", style = BodyStyle.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold))
-            Text(if (n > 0) "Tap one to change it" else "No photo? The day's sky becomes the stamp", style = SmallStyle.copy(fontSize = 11.sp))
+            Text("$n of 3 stamps", style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold))
+            Text(if (n > 0) "Tap one to change it" else "No photo? The day's sky becomes the stamp", style = SmallStyle.copy(fontSize = 12.5.sp))
         }
     }
 }
@@ -254,13 +254,13 @@ private fun Strip(model: AnnalesModel, day: Day, sel: Int, onSelect: (Int) -> Un
 private fun Act(label: String, warn: Boolean = false, onClick: () -> Unit) = OutlinedButton(
     onClick = onClick, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
     border = BorderStroke(1.dp, K.line),
-) { Text(label, color = if (warn) Color(0xFFB4483A) else K.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+) { Text(label, color = if (warn) Color(0xFFB4483A) else K.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
 
 /** A tag chip as in the mockup: outlined, filled with ink when chosen. */
 @Composable
 private fun Tag(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (on) K.surface else K.ink),
+    style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = if (on) K.surface else K.ink),
     modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) K.ink else K.surface.copy(alpha = .8f))
         .border(1.dp, if (on) K.ink else K.line, RoundedCornerShape(99.dp)).clickable(onClick = onClick)
         .padding(horizontal = 11.dp, vertical = 8.dp),
@@ -275,16 +275,16 @@ private fun Feelings(model: AnnalesModel, day: Day) {
     val fs = Tags.feelsFor(mood)
     val list = (if (more) fs else fs.take(10)) + day.feels.filter { it !in fs }
     Column(Modifier.padding(horizontal = 18.dp)) {
-        Text("What best describes this feeling?", style = BodyStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
+        Text("What best describes this feeling?", style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             list.forEach { f -> Tag(f, f in day.feels) { model.toggleFeel(day.date, f) } }
             if (fs.size > 10) Text(
                 if (more) "Show less" else "Show more",
-                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = K.acc),
+                style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = K.acc),
                 modifier = Modifier.clickable { more = !more }.padding(horizontal = 6.dp, vertical = 8.dp),
             )
         }
-        Text("What's having the biggest impact?", style = BodyStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
+        Text("What's having the biggest impact?", style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Tags.factors.forEach { f -> Tag(f, f in day.factors) { model.toggleFactor(day.date, f) } }
         }
@@ -300,7 +300,7 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         PROMPTS.subList(start, start + 3).forEach { p ->
             Text(
-                p, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.muted),
+                p, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.muted),
                 modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(K.surface).border(1.dp, K.line, RoundedCornerShape(99.dp))
                     .clickable { hint = p }.padding(horizontal = 12.dp, vertical = 8.dp),
             )
@@ -314,7 +314,7 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner -> Box { if (text.isEmpty()) Text(hint, style = style.copy(color = K.muted.copy(alpha = .75f))); inner() } },
         )
-        Text("${text.length} / 120", style = SmallStyle.copy(fontSize = 10.5.sp), modifier = Modifier.align(Alignment.End).padding(top = 4.dp))
+        Text("${text.length} / 120", style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.End).padding(top = 4.dp))
     }
 }
 
@@ -373,14 +373,14 @@ private fun PostmarkCard(model: AnnalesModel, day: Day) {
 
 @Composable
 private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean = false) = Row(
-    Modifier.fillMaxWidth().padding(vertical = 10.dp).alpha(if (faded) .55f else 1f), verticalAlignment = Alignment.CenterVertically,
+    Modifier.fillMaxWidth().padding(vertical = 10.dp).alpha(if (faded) .72f else 1f), verticalAlignment = Alignment.CenterVertically,
 ) {
     Text(ic, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = K.acc), modifier = Modifier.width(30.dp))
     Column(Modifier.weight(1f)) {
         Text(b, style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold))
-        Text(s, style = SmallStyle.copy(fontSize = 11.sp))
+        Text(s, style = SmallStyle.copy(fontSize = 12.5.sp))
     }
-    Text(src.uppercase(), style = KickerStyle.copy(fontSize = 8.5.sp, letterSpacing = 1.sp))
+    Text(src.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp))
 }
 
 /** The mockup's dark button: it says what's missing until the day can be sealed, and offers re-sealing after edits. */
@@ -421,7 +421,7 @@ fun InkChip(ink: Ink, selected: Boolean, label: String = ink.label, onClick: () 
     ) {
         Box(Modifier.size(12.dp).background(Color(ink.argb), CircleShape))
         Spacer(Modifier.size(6.dp))
-        Text(label, color = K.ink, fontSize = 13.sp)
+        Text(label, color = K.ink, fontSize = 14.sp)
     }
 }
 

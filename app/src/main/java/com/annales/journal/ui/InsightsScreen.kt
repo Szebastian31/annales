@@ -61,7 +61,7 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                 .forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
-                        Text(l, style = SmallStyle.copy(fontSize = 10.sp), textAlign = TextAlign.Center)
+                        Text(l, style = SmallStyle.copy(fontSize = 12.sp), textAlign = TextAlign.Center)
                     }
                 }
         }
@@ -119,7 +119,7 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                             Modifier.width(12.dp).height((60f * v / mx).dp.coerceAtLeast(if (v > 0) 3.dp else 1.dp))
                                 .background(if (v > 0) K.acc else K.line, RoundedCornerShape(3.dp))
                         )
-                        Text("JFMAMJJASOND"[i].toString(), style = SmallStyle.copy(fontSize = 10.sp), modifier = Modifier.padding(top = 4.dp))
+                        Text("JFMAMJJASOND"[i].toString(), style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
@@ -135,7 +135,7 @@ private fun Card(content: @Composable () -> Unit) = Column(
 @Composable
 private fun Seg(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted),
+    style = TextStyle(fontSize = 13.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted),
     modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) K.accSoft else Color.Transparent)
         .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 5.dp),
 )
@@ -145,7 +145,7 @@ private fun Seg(label: String, on: Boolean, onClick: () -> Unit) = Text(
 private fun MoodChart(cols: List<Insights.Column>) {
     Row(Modifier.fillMaxWidth().height(170.dp).padding(top = 12.dp)) {
         Column(Modifier.fillMaxHeight().padding(end = 6.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            listOf("Very Pleasant", "Neutral", "Very Unpleasant").forEach { Text(it, style = SmallStyle.copy(fontSize = 9.sp)) }
+            listOf("Very Pleasant", "Neutral", "Very Unpleasant").forEach { Text(it, style = SmallStyle.copy(fontSize = 11.sp)) }
         }
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Canvas(Modifier.weight(1f).fillMaxWidth()) {
@@ -171,7 +171,7 @@ private fun MoodChart(cols: List<Insights.Column>) {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                cols.forEach { Text(it.label, style = SmallStyle.copy(fontSize = 9.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, maxLines = 1) }
+                cols.forEach { Text(it.label, style = SmallStyle.copy(fontSize = 11.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center, maxLines = 1) }
             }
         }
     }
@@ -219,7 +219,7 @@ private fun Connections(ins: Insights) {
                         (1..3).forEach { i ->
                             Box(Modifier.padding(end = 3.dp).size(14.dp, 4.dp).background(if (i <= l.level) K.acc else K.line, RoundedCornerShape(2.dp)))
                         }
-                        Text(l.label, style = SmallStyle.copy(fontSize = 10.sp), modifier = Modifier.padding(start = 4.dp))
+                        Text(l.label, style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.padding(start = 4.dp))
                     }
                 }
                 val d = l.diff

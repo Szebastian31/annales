@@ -198,7 +198,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 TabIcon(t, if (on) K.acc else K.muted)
-                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted))
+                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
         }
@@ -238,7 +238,7 @@ private fun AddSheet(suggested: com.annales.journal.render.SkyStamp.Weather? = n
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(wx.glyph, fontSize = 22.sp, color = K.ink)
-                        Text(wx.label.substringBefore(" "), style = SmallStyle.copy(fontSize = 10.sp), maxLines = 1)
+                        Text(wx.label.substringBefore(" "), style = SmallStyle.copy(fontSize = 12.sp), maxLines = 1)
                     }
                 }
             }

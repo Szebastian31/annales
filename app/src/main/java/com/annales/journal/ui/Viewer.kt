@@ -174,7 +174,7 @@ private fun Themes(model: AnnalesModel, stamp: Stamp, inside: Collection?) {
 @Composable
 private fun DarkChip(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 13.sp, color = if (on) Color(0xFF1F1A16) else Color.White, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
+    style = TextStyle(fontSize = 14.sp, color = if (on) Color(0xFF1F1A16) else Color.White, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
     modifier = Modifier.background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF), RoundedCornerShape(99.dp))
         .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp),
 )

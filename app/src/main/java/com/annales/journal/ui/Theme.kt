@@ -107,9 +107,9 @@ fun title(plain: String, em: String): AnnotatedString = buildAnnotatedString {
 }
 
 val TitleStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 30.sp, lineHeight = 34.sp, color = K.ink)
-val KickerStyle get() = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, color = K.muted)
+val KickerStyle get() = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, color = K.muted)
 val BodyStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 21.sp, color = K.ink)
-val SmallStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, color = K.muted)
+val SmallStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 19.sp, color = K.muted)
 
 @Composable
 fun Header(kicker: String, title: AnnotatedString, modifier: Modifier = Modifier) {

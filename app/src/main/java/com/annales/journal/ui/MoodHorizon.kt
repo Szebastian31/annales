@@ -97,7 +97,7 @@ fun MoodHorizon(moodV: Int?, enabled: Boolean, onMood: (Int) -> Unit, modifier: 
             drawCircle(Color.White, 10.5f * sy, Offset(ox, oy), style = Stroke(2.4f * sy))
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            val lab = KickerStyle.copy(fontSize = 8.5.sp, letterSpacing = 1.sp)
+            val lab = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp)
             Text("VERY UNPLEASANT", style = lab, modifier = Modifier.weight(1f))
             Text("NEUTRAL", style = lab)
             Text("VERY PLEASANT", style = lab, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)

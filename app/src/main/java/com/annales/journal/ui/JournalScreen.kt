@@ -59,7 +59,7 @@ fun JournalScreen(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit, modifier:
             listOf(false to "Calendar", true to "Pages").forEach { (p, n) ->
                 Text(
                     n, textAlign = TextAlign.Center,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (pages == p) K.surface else K.muted),
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (pages == p) K.surface else K.muted),
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(99.dp)).background(if (pages == p) K.ink else Color.Transparent)
                         .clickable { pages = p }.padding(vertical = 8.dp),
                 )
@@ -80,7 +80,7 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
                 Text("%02d".format(sealedN), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 44.sp, lineHeight = 44.sp, color = K.ink))
-                Text("DAYS · ${ym.year}", style = KickerStyle.copy(fontSize = 9.sp), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+                Text("DAYS · ${ym.year}", style = KickerStyle.copy(fontSize = 11.sp), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
             }
             Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, color = K.acc))
         }
@@ -92,7 +92,7 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(horizontal = 8.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth()) {
             listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach {
-                Text(it.uppercase(), style = KickerStyle.copy(fontSize = 8.5.sp, letterSpacing = .8.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(it.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = .8.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             }
         }
         val lead = ym.atDay(1).dayOfWeek.value % 7 // Sunday first, as in the mockup
@@ -141,7 +141,7 @@ private fun Cell(model: AnnalesModel, date: LocalDate, inMonth: Boolean, today: 
         if (inMonth && d != null && d.sealed && st != null) {
             StampView(model, st.id, date.dayOfYear, d.mood, 30.dp)
             if (d.stamps.size > 1) Text(
-                "${d.stamps.size}", style = TextStyle(fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = K.onAcc),
+                "${d.stamps.size}", style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = K.onAcc),
                 modifier = Modifier.align(Alignment.TopEnd).padding(1.dp).background(K.acc, RoundedCornerShape(99.dp)).padding(horizontal = 4.dp),
             )
         } else {
@@ -207,7 +207,7 @@ private fun Stack(model: AnnalesModel, d: Day) {
         Box(Modifier.size(56.dp, 68.dp).dashed(K.line), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("${d.date.dayOfMonth}", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = K.ink.copy(alpha = .6f)))
-                Text("quiet day", style = SmallStyle.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold))
+                Text("quiet day", style = SmallStyle.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold))
             }
         }
         return

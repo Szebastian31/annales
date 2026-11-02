@@ -73,16 +73,17 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
     }
     fun minScale(f: Rect) = max(f.width / photo.width, f.height / photo.height)
     fun clamp(f: Rect, s: Float, o: Offset): Offset {
-        val x = o.x.coerceIn(f.right - photo.width * s, f.left)
-        val y = o.y.coerceIn(f.bottom - photo.height * s, f.top)
-        return Offset(x, y)
+        // at the smallest size the photo is exactly as wide (or tall) as the frame, and rounding can make the allowed range
+        // a hair "backwards", which coerceIn refuses with a crash; then just centre it on that side
+        fun fit(v: Float, lo: Float, hi: Float) = if (lo <= hi) v.coerceIn(lo, hi) else (lo + hi) / 2
+        return Offset(fit(o.x, f.right - photo.width * s, f.left), fit(o.y, f.bottom - photo.height * s, f.top))
     }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF1F1A16)).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onCancel) { Text("Cancel", color = Color.White) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Drag · pinch to resize", style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = Color(0xB3FFFFFF)))
+                Text("Drag · pinch to resize", style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xB3FFFFFF)))
                 Text("Frame the memory", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = Color.White))
             }
             TextButton(onClick = {
@@ -129,7 +130,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
         }
         // Size: the same zoom as pinching, kept centred on the frame
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Size", style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xB3FFFFFF)))
+            Text("Size", style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xB3FFFFFF)))
             val f = frame(); val lo = minScale(f)
             androidx.compose.material3.Slider(
                 value = if (scale > 0f && lo > 0f) ((scale / lo - 1f) / 5f).coerceIn(0f, 1f) else 0f,
@@ -164,7 +165,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
 @Composable
 private fun CropChip(text: String, on: Boolean, onClick: () -> Unit) {
     Text(
-        text, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) Color(0xFF1F1A16) else Color.White),
+        text, style = TextStyle(fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) Color(0xFF1F1A16) else Color.White),
         modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF))
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
     )

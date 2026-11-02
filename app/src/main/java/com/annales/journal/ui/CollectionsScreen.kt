@@ -100,7 +100,7 @@ fun CollectionsScreen(model: AnnalesModel, onOpen: (Collection) -> Unit, onNew: 
 @Composable
 fun Chip(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.onAcc else K.ink),
+    style = TextStyle(fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.onAcc else K.ink),
     modifier = Modifier.background(if (on) K.acc else K.surface, RoundedCornerShape(99.dp)).clickable(onClick = onClick)
         .padding(horizontal = 12.dp, vertical = 7.dp),
 )
@@ -133,7 +133,7 @@ fun TypeTag(c: Collection, withInk: Boolean = false) = Row(verticalAlignment = A
     Spacer(Modifier.size(6.dp))
     Text(
         (c.type.label + if (withInk && c.type != CollType.THEME) " · ${inkOf(c).label} ink" else "").uppercase(),
-        style = KickerStyle.copy(fontSize = 10.sp),
+        style = KickerStyle.copy(fontSize = 12.sp),
     )
 }
 
@@ -144,7 +144,7 @@ fun Ghost(type: CollType, label: String) = Box(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(type.glyph, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = K.muted))
-        Text(label, style = SmallStyle.copy(fontSize = 10.sp))
+        Text(label, style = SmallStyle.copy(fontSize = 12.sp))
     }
 }
 
@@ -195,7 +195,7 @@ fun CollectionScreen(
             val label = if (c.type == CollType.ANNIV) "${d.date.year} · ${d.date.dayOfWeek.name.lowercase().replaceFirstChar { it.titlecase() }}"
             else "Day ${i + 1} · ${d.date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))}"
             Column(Modifier.padding(horizontal = 22.dp, vertical = 8.dp)) {
-                Text(label.uppercase(), style = KickerStyle.copy(fontSize = 10.sp))
+                Text(label.uppercase(), style = KickerStyle.copy(fontSize = 12.sp))
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     ss.forEach { s ->
                         StampView(model, s.id, d.date.dayOfYear, d.mood, 66.dp,

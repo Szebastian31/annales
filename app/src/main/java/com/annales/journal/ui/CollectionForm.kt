@@ -88,7 +88,7 @@ fun CollectionForm(model: AnnalesModel, start: Collection, onClose: () -> Unit, 
                                 .clickable(enabled = isNew || on) { f = f.copy(type = t) }.padding(12.dp)
                         ) {
                             Text("${t.glyph} ${t.label}", style = BodyStyle.copy(fontWeight = FontWeight.Bold, color = if (on) K.acc else K.ink))
-                            Text(t.about, style = SmallStyle.copy(fontSize = 11.sp))
+                            Text(t.about, style = SmallStyle.copy(fontSize = 12.5.sp))
                         }
                     }
                 }
@@ -176,7 +176,7 @@ fun CollectionForm(model: AnnalesModel, start: Collection, onClose: () -> Unit, 
 private fun DateField(label: String, value: String, modifier: Modifier, error: Boolean = false, onClick: () -> Unit) = Column(
     modifier.background(K.surface, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp)
 ) {
-    Text(label, style = SmallStyle.copy(fontSize = 11.sp, color = if (error) Color(0xFFB4483A) else K.muted))
+    Text(label, style = SmallStyle.copy(fontSize = 12.5.sp, color = if (error) Color(0xFFB4483A) else K.muted))
     Text(value, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
 }
 
