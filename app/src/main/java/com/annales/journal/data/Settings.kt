@@ -51,6 +51,9 @@ class Settings(context: Context) {
     var reminder: Boolean
         get() = p.getBoolean("reminder", true)
         set(v) = p.edit().putBoolean("reminder", v).apply()
+    var look: String
+        get() = p.getString("look", "KRAFT") ?: "KRAFT"
+        set(v) = p.edit().putString("look", v).apply()
     var since: String
         get() = p.getString("since", "") ?: ""
         set(v) = p.edit().putString("since", v).apply()

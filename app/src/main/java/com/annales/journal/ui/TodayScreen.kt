@@ -49,6 +49,7 @@ private val longDate = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.ENGLIS
 fun DayPage(
     model: AnnalesModel, date: LocalDate,
     onAdd: () -> Unit, onOpen: (Stamp) -> Unit, modifier: Modifier = Modifier,
+    onOpenPast: (LocalDate, Stamp) -> Unit = { _, _ -> },
 ) {
     val day = model.day(date)
     val today = date == LocalDate.now()
@@ -73,6 +74,7 @@ fun DayPage(
             "Up to three stamps a day, cut from your photos. Seal the day and each one gets a postmark and goes into Photos.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
         )
+        if (today) OnThisDay(model, date, onOpenPast)
     }
 }
 
@@ -189,6 +191,35 @@ private fun DayTags(model: AnnalesModel, day: Day) {
         Text("HOW IT FELT", style = KickerStyle, modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp))
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             feels.forEach { f -> Chip(f, f in day.feels) { model.toggleFeel(day.date, f) } }
+        }
+    }
+}
+
+/** The same date in an earlier year: its first stamp, how it felt, and its title. */
+@Composable
+private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, Stamp) -> Unit) {
+    val past = model.onThisDay(date).firstOrNull() ?: return
+    val s = past.stamps.first()
+    val years = date.year - past.date.year
+    Text("ON THIS DAY", style = KickerStyle, modifier = Modifier.padding(start = 22.dp, top = 18.dp, bottom = 6.dp))
+    Row(
+        Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.page, RoundedCornerShape(18.dp))
+            .clickable { onOpen(past.date, s) }.padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StampView(model, s.id, past.date.dayOfYear, past.mood, 72.dp, rotation = -2f)
+        Spacer(Modifier.size(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                (if (years == 1) "A year ago" else "$years years ago") +
+                    (past.mood?.let { " · ${com.annales.journal.data.Moods.names[it]}" } ?: ""),
+                style = SmallStyle,
+            )
+            Text(
+                s.title.ifBlank { s.note.ifBlank { past.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH)) } },
+                style = TextStyle(fontFamily = K.serif, fontSize = 18.sp, color = K.ink), maxLines = 2,
+            )
+            if (past.stamps.size > 1) Text("${past.stamps.size} stamps that day", style = SmallStyle)
         }
     }
 }

@@ -2,6 +2,10 @@ package com.annales.journal.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,7 +51,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(46.dp).background(K.acc, CircleShape), contentAlignment = Alignment.Center) {
-                    Text("A", style = TextStyle(fontFamily = K.serif, fontSize = 22.sp, color = Color.White))
+                    Text("A", style = TextStyle(fontFamily = K.serif, fontSize = 22.sp, color = K.onAcc))
                 }
                 Spacer(Modifier.size(12.dp))
                 Column {
@@ -71,17 +76,27 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             }
         }
 
-        Section("Perforation")
+        Section("Look")
         Card {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("classic" to "Classic", "scallop" to "Scallop").forEach { (k, n) ->
-                    OutlinedButton(
-                        onClick = { model.changeCut(k) },
-                        border = BorderStroke(if (model.cut == k) 2.dp else 1.dp, if (model.cut == k) K.acc else K.line),
-                    ) { Text(n, color = K.ink, fontWeight = if (model.cut == k) FontWeight.Bold else FontWeight.Normal) }
+            Look.entries.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { l -> LookTile(l, l == K.look, Modifier.weight(1f)) { model.changeLook(l) } }
                 }
             }
-            Text("Unsealed stamps are re-cut straight away; sealed ones keep their edge.", style = SmallStyle, modifier = Modifier.padding(top = 8.dp))
+        }
+
+        Section("Perforation")
+        Card {
+            StampRendererCuts.chunked(5).forEach { row ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    row.forEach { (k, n, _) -> CutTile(k, n, model.cut == k, Modifier.weight(1f)) { model.changeCut(k) } }
+                }
+            }
+            val about = StampRendererCuts.firstOrNull { it.first == model.cut }
+            Text(
+                "${about?.second ?: ""}: ${about?.third ?: ""}. Unsealed stamps are re-cut straight away; sealed ones keep their edge.",
+                style = SmallStyle,
+            )
         }
 
         Section("Photos & ritual")
@@ -91,7 +106,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             Toggle("On this phone only", "No account, no cloud, no analytics", true, null)
         }
         Text(
-            "Annales 0.3.0 · pre-release. Backups are coming in a later build.",
+            "Annales 0.4.0 · pre-release. Backups are coming in a later build.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }
@@ -115,7 +130,38 @@ private fun Toggle(name: String, sub: String, on: Boolean, onChange: ((Boolean) 
         }
         if (onChange != null) Switch(
             on, onChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = K.acc, checkedThumbColor = Color.White),
+            colors = SwitchDefaults.colors(checkedTrackColor = K.acc, checkedThumbColor = K.onAcc),
         ) else Text("✓", style = BodyStyle.copy(color = K.green, fontWeight = FontWeight.Bold))
     }
+}
+
+private val StampRendererCuts = com.annales.journal.render.StampRenderer.cuts
+
+/** A swatch of the look: its page, a card, an accent dot and its name. */
+@Composable
+private fun LookTile(l: Look, on: Boolean, modifier: Modifier, onClick: () -> Unit) = Column(
+    modifier.clip(RoundedCornerShape(14.dp)).background(Color(l.bg))
+        .border(if (on) 2.5.dp else 1.dp, if (on) K.acc else K.line, RoundedCornerShape(14.dp))
+        .clickable(onClick = onClick).padding(10.dp),
+) {
+    Row(Modifier.fillMaxWidth().height(26.dp).background(Color(l.surface), RoundedCornerShape(6.dp)).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(Color(l.acc), CircleShape))
+        Spacer(Modifier.size(4.dp))
+        Box(Modifier.weight(1f).height(4.dp).background(Color(l.ink).copy(alpha = .5f), RoundedCornerShape(2.dp)))
+    }
+    Text(l.label, style = TextStyle(fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
+    Text(l.about, style = TextStyle(fontSize = 10.sp, color = Color(l.muted)))
+}
+
+/** The edge drawn as a little stamp shape. */
+@Composable
+private fun CutTile(key: String, name: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) = Column(
+    modifier.clip(RoundedCornerShape(10.dp)).background(if (on) K.accSoft else Color.Transparent).clickable(onClick = onClick).padding(vertical = 6.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+) {
+    androidx.compose.foundation.Canvas(Modifier.size(36.dp, 45.dp)) {
+        val path = com.annales.journal.render.StampRenderer.shape(key, 7, size.width, size.height)
+        drawPath(path.asComposePath(), if (on) K.acc else K.muted)
+    }
+    Text(name, style = TextStyle(fontSize = 10.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal), maxLines = 1)
 }

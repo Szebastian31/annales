@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.3.0).** Today, the Journal, Collections, Insights and Profile are in. Backups come in a later build.
+> **Pre-release (0.4.0).** Today, the Journal, Collections, Insights, ten perforations and six looks are in. Backups come in a later build.
 
 ---
 
@@ -28,7 +28,10 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 - **Collections.** A **trip** (dates and a place: those days are stamped by that city's post office), an **event** (a wedding, a launch), an **anniversary** (one date, every year) or a hand-picked **theme**, like Coffee.
 - **Turn it over.** Open a stamp full screen and tap it to see the back: the date, the mood, when it was sealed, and a title and note you can write. Swipe through a collection, file a stamp into a theme, or make it the cover.
 - **Insights.** Your streak, your moods over a week, a month or all time, which factors and feelings come with which moods, and gentle connections (trips, your people, weekends, busy days, the full moon), each with how sure it is.
-- **Two perforations.** Classic round holes, or Scallop's big soft bites.
+- **Ten perforations.** Classic, Scallop, Pinhole, Comb, Pinking, Wave, Rouletted, Deckle (each one torn differently), Ticket and Sticker.
+- **Six looks.** Kraft, Airmail, Gallery, Herbarium, Riviera, and Ink for evenings.
+- **The day's sky.** No photo? Pick the weather and get a drawn stamp with that night's real moon phase and hills in the day's mood colour.
+- **On this day.** The same date in an earlier year, on the Today page.
 - **Evening reminder.** A soft nudge at 21:30 if today is still unsealed.
 
 ## Getting started
@@ -56,10 +59,11 @@ A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), wit
 | Where | What it is |
 | --- | --- |
 | `data/` | `JournalStore` (journal.json, photos and stamps in app storage), `CollectionStore` (collections.json) and `Places`, `Insights` (all the maths for the Insights tab), `Settings`, `Tags`, `Moods`, `Ink` |
-| `render/StampRenderer.kt` | Perforation, the datownik, the wavy lines and the ink wear |
+| `render/StampRenderer.kt` | The ten perforations, the datownik, the wavy lines and the ink wear |
+| `render/SkyStamp.kt` | The drawn sky stamp: weather, moon phase, mood-coloured hills |
 | `render/Photos.kt` | Decoding picked photos, saving sealed stamps to Photos › Annales |
 | `reminder/` | The 21:30 reminder and putting it back after a restart |
-| `ui/` | Today (`DayPage`), Journal, Collections and their form, Insights, the crop screen, the viewer, Profile and the Kraft theme |
+| `ui/` | Today (`DayPage`), Journal, Collections and their form, Insights, the crop screen, the viewer, Profile and the six looks |
 | `tools/icon.js`, `tools/icon.html`, `tools/icon.sh` | Draw the icon and render every PNG in `icons/` and the launcher layers |
 | `tools/install.sh` | Waits for the build of your last push and installs it on the plugged-in phone |
 | `.github/workflows/android.yml` | Builds the APK and publishes it to the latest-debug release |

@@ -67,6 +67,7 @@ fun AnnalesApp(model: AnnalesModel) {
     var viewing by remember { mutableStateOf<Viewing?>(null) }
     var cropping by remember { mutableStateOf<Pair<LocalDate, Bitmap>?>(null) }
     var pickFor by remember { mutableStateOf(LocalDate.now()) }
+    var adding by remember { mutableStateOf<LocalDate?>(null) }       // the "photo or sky?" sheet is open for this day
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -76,8 +77,9 @@ fun AnnalesApp(model: AnnalesModel) {
             if (bmp == null) model.message = "Couldn't open that photo." else cropping = date to bmp
         }
     }
-    fun add(date: LocalDate) {
-        pickFor = date
+    fun add(date: LocalDate) { adding = date }
+    fun pickPhoto(date: LocalDate) {
+        pickFor = date; adding = null
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
     fun viewDay(date: LocalDate, s: Stamp) {
@@ -91,7 +93,17 @@ fun AnnalesApp(model: AnnalesModel) {
         if (Build.VERSION.SDK_INT >= 33 && model.reminder) notify.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    val overlay = viewing != null || cropping != null || editing != null
+    val overlay = viewing != null || cropping != null || editing != null || adding != null
+
+    // light status bar icons on the Ink look, dark ones elsewhere
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.SideEffect {
+        (view.context as? android.app.Activity)?.window?.let { w ->
+            androidx.core.view.WindowCompat.getInsetsController(w, view).apply {
+                isAppearanceLightStatusBars = !K.look.dark; isAppearanceLightNavigationBars = !K.look.dark
+            }
+        }
+    }
     BackHandler(enabled = !overlay && (openDay != null || openColl != null)) { if (openDay != null) openDay = null else openColl = null }
 
     Box(Modifier.fillMaxSize().background(K.bg)) {
@@ -104,7 +116,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         TextButton(onClick = { openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
                             Text("‹ ${coll?.name ?: "Journal"}", color = K.acc)
                         }
-                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) })
+                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) })
                     }
                     coll != null -> CollectionScreen(
                         model, coll,
@@ -112,7 +124,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         onOpenStamp = { _, s, all -> viewing = Viewing(all, all.indexOfFirst { it.second.id == s.id }, coll) },
                         onOpenDay = { if (it == LocalDate.now()) { openColl = null; tab = Tab.TODAY } else openDay = it },
                     )
-                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) })
+                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) }, onOpenPast = { d, s -> viewDay(d, s) })
                     tab == Tab.JOURNAL -> JournalScreen(model, onOpenDay = { if (it == LocalDate.now()) tab = Tab.TODAY else openDay = it })
                     tab == Tab.COLLECTIONS -> CollectionsScreen(
                         model, onOpen = { openColl = it.id },
@@ -136,6 +148,10 @@ fun AnnalesApp(model: AnnalesModel) {
             )
         }
         viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
+        adding?.let { date ->
+            BackHandler { adding = null }
+            AddSheet(onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx) }, onCancel = { adding = null })
+        }
         cropping?.let { (date, bmp) ->
             BackHandler { cropping = null }
             CropScreen(bmp, onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped) }
@@ -168,6 +184,46 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
+        }
+    }
+}
+
+/** "Add a stamp": a photo from the library, or a drawn stamp of the day's sky in the weather you pick. */
+@Composable
+private fun AddSheet(onPhoto: () -> Unit, onSky: (com.annales.journal.render.SkyStamp.Weather) -> Unit, onCancel: () -> Unit) {
+    Box(
+        Modifier.fillMaxSize().background(Color(0x991F1A16)).clickable(onClick = onCancel),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().background(K.surface, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .clickable(enabled = false) { }.navigationBarsPadding().padding(20.dp)
+        ) {
+            Text("Add a stamp", style = TitleStyle.copy(fontSize = 22.sp))
+            Row(
+                Modifier.fillMaxWidth().padding(top = 14.dp).background(K.page, RoundedCornerShape(16.dp)).clickable(onClick = onPhoto).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("🖼", fontSize = 24.sp)
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text("Photo library", style = BodyStyle.copy(fontWeight = FontWeight.Bold))
+                    Text("Pick any photo, then frame it", style = SmallStyle)
+                }
+            }
+            Text("THE DAY'S SKY", style = KickerStyle, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
+            Text("A drawn stamp of the weather and tonight's moon, with hills in the day's mood colour.", style = SmallStyle)
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+                com.annales.journal.render.SkyStamp.Weather.entries.forEach { wx ->
+                    Column(
+                        Modifier.weight(1f).background(K.page, RoundedCornerShape(12.dp)).clickable { onSky(wx) }.padding(vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(wx.glyph, fontSize = 22.sp, color = K.ink)
+                        Text(wx.label.substringBefore(" "), style = SmallStyle.copy(fontSize = 10.sp), maxLines = 1)
+                    }
+                }
+            }
+            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Cancel", color = K.muted) }
         }
     }
 }

@@ -26,33 +26,93 @@ data class Seal(val date: LocalDate, val hour: Int, val office: String, val post
 object StampRenderer {
     const val W = 800
     const val H = 1000
-    private val u = min(W, H) / 150f // the mockup's unit: stamps there are about 150 px wide
     private val k = W / 150f
 
-    /** The paper outline with the perforation punched out. */
-    fun shape(cut: String): Path {
-        val (r, p) = when (cut) {
-            "scallop" -> 5.8f * u to 13.5f * u
-            else -> 3.5f * u to 9.8f * u
-        }
+    /** The ten edges from the mockup: key, name, and a few words on what they look like. */
+    val cuts = listOf(
+        Triple("classic", "Classic", "round holes"), Triple("scallop", "Scallop", "big soft bites"),
+        Triple("pinhole", "Pinhole", "tiny, dense"), Triple("comb", "Comb", "square teeth"),
+        Triple("pinking", "Pinking", "zigzag shears"), Triple("wave", "Wave", "smooth ripple"),
+        Triple("rouletted", "Rouletted", "slit tear line"), Triple("deckle", "Deckle", "torn by hand"),
+        Triple("ticket", "Ticket", "notched stub"), Triple("sticker", "Sticker", "die-cut round"),
+    )
+
+    /** The paper outline with its edge cut, in a [w] × [h] box. [seed] tears each deckle edge differently. */
+    fun shape(cut: String, seed: Int = 7, w: Float = W.toFloat(), h: Float = H.toFloat()): Path {
+        val u = min(w, h) / 150f
         val holes = Path()
-        fun side(len: Float, at: (Float) -> Pair<Float, Float>) {
-            val n = maxOf(2, (len / p).roundToInt())
-            for (i in 0..n) { val (x, y) = at(i * len / n); holes.addCircle(x, y, r, Path.Direction.CW) }
+        var paper = Path().apply { addRect(0f, 0f, w, h, Path.Direction.CW) }
+
+        // points every L/n along the four edges, corners included
+        fun sides(p: Float, at: (x: Float, y: Float) -> Unit) {
+            listOf(w to false, h to true).forEach { (len, vertical) ->
+                val n = maxOf(2, (len / p).roundToInt())
+                for (i in 0..n) {
+                    val t = i * len / n
+                    if (vertical) { at(0f, t); at(w, t) } else { at(t, 0f); at(t, h) }
+                }
+            }
         }
-        side(W.toFloat()) { it to 0f }; side(W.toFloat()) { it to H.toFloat() }
-        side(H.toFloat()) { 0f to it }; side(H.toFloat()) { W.toFloat() to it }
-        return Path().apply {
-            addRect(0f, 0f, W.toFloat(), H.toFloat(), Path.Direction.CW)
-            op(holes, Path.Op.DIFFERENCE)
+        fun circles(r: Float, p: Float) = sides(p) { x, y -> holes.addCircle(x, y, r, Path.Direction.CW) }
+        // a wavy or torn outline: depth(t, period) inward from each edge, sampled every [step]
+        fun outline(p: Float, step: Float, depth: (t: Float, period: Float) -> Float) {
+            paper = Path()
+            var first = true
+            fun pt(x: Float, y: Float) { if (first) { paper.moveTo(x, y); first = false } else paper.lineTo(x, y) }
+            fun run(len: Float, map: (t: Float, d: Float) -> Pair<Float, Float>) {
+                val period = len / maxOf(1, (len / p).roundToInt())
+                val k = kotlin.math.ceil(len / step).toInt()
+                for (i in 0 until k) { val t = i * len / k; val (x, y) = map(t, depth(t, period)); pt(x, y) }
+            }
+            run(w) { t, d -> t to d }; run(h) { t, d -> (w - d) to t }
+            run(w) { t, d -> (w - t) to (h - d) }; run(h) { t, d -> d to (h - t) }
+            paper.close()
         }
+
+        when (cut) {
+            "scallop" -> circles(5.8f * u, 13.5f * u)
+            "pinhole" -> circles(1.3f * u, 4.3f * u)
+            "comb" -> { val s = 4.8f * u; sides(9.8f * u) { x, y -> holes.addRect(x - s / 2, y - s / 2, x + s / 2, y + s / 2, Path.Direction.CW) } }
+            "pinking" -> outline(7.4f * u, .6f * u) { t, period -> val q = (t % period) / period; 4f * u * (if (q < .5f) q * 2 else 2 - q * 2) }
+            "wave" -> outline(12f * u, .9f * u) { t, period -> 3.4f * u * (1 - kotlin.math.cos(2 * Math.PI * t / period).toFloat()) / 2 }
+            "deckle" -> {
+                val r = Random(seed); val ph = FloatArray(2) { r.nextFloat() * 9 }
+                outline(9f * u, 1.5f * u) { t, _ ->
+                    u * (1.4f + 1.2f * kotlin.math.sin(t / (5 * u) + ph[0]) + .8f * kotlin.math.sin(t / (2.1f * u) + ph[1]) + .9f * r.nextFloat())
+                }
+            }
+            "rouletted" -> {
+                val m = 3.2f * u; val l = 4.6f * u; val th = 1.3f * u
+                listOf(w to false, h to true).forEach { (len, vertical) ->
+                    val n = ((len - 2 * m) / (7.4f * u)).roundToInt()
+                    for (i in 1 until n) {
+                        val t = m + i * (len - 2 * m) / n
+                        listOf(m, (if (vertical) w else h) - m).forEach { o ->
+                            if (vertical) holes.addRect(o - th / 2, t - l / 2, o + th / 2, t + l / 2, Path.Direction.CW)
+                            else holes.addRect(t - l / 2, o - th / 2, t + l / 2, o + th / 2, Path.Direction.CW)
+                        }
+                    }
+                }
+            }
+            "ticket" -> {
+                val r = 7f * u
+                paper = Path().apply { addRoundRect(RectF(0f, 0f, w, h), 2 * u, 2 * u, Path.Direction.CW) }
+                listOf(0f to 0f, w to 0f, 0f to h, w to h).forEach { (x, y) -> holes.addCircle(x, y, r * .8f, Path.Direction.CW) }
+                listOf(0f to h / 2, w to h / 2).forEach { (x, y) -> holes.addCircle(x, y, r, Path.Direction.CW) }
+                var x = r * 1.4f
+                while (x < w - r) { holes.addCircle(x, h * .78f, .85f * u, Path.Direction.CW); x += 3.6f * u }
+            }
+            "sticker" -> { val rr = min(w, h) * .12f; paper = Path().apply { addRoundRect(RectF(0f, 0f, w, h), rr, rr, Path.Direction.CW) } }
+            else -> circles(3.5f * u, 9.8f * u)
+        }
+        return Path(paper).apply { op(holes, Path.Op.DIFFERENCE) }
     }
 
     /** [photo] is the cropped photo (any size, 4:5). Without a [seal] it's a draft: just the cut paper. */
-    fun render(photo: Bitmap, cut: String, seal: Seal?): Bitmap {
+    fun render(photo: Bitmap, cut: String, seal: Seal?, seed: Int = 7): Bitmap {
         val out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         val c = Canvas(out)
-        c.clipPath(shape(cut))
+        c.clipPath(shape(cut, seed))
         c.drawBitmap(photo, null, Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
         if (seal != null) c.drawBitmap(cancels(seal), 0f, 0f, null)
         return out

@@ -52,6 +52,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
 
     init {
         if (settings.since.isEmpty()) settings.since = LocalDate.now().toString()
+        com.annales.journal.ui.K.look = runCatching { com.annales.journal.ui.Look.valueOf(settings.look) }.getOrDefault(com.annales.journal.ui.Look.KRAFT)
         viewModelScope.launch { days = withContext(Dispatchers.IO) { store.load() } }
         viewModelScope.launch { collections = withContext(Dispatchers.IO) { collStore.load() } }
     }
@@ -82,7 +83,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         val s = Stamp(UUID.randomUUID().toString().take(12))
         work({
             Photos.writeJpeg(cropped, store.photoFile(s.id))
-            val draft = StampRenderer.render(cropped, cut, null)
+            val draft = StampRenderer.render(cropped, cut, null, s.id.hashCode())
             Photos.writePng(draft, store.stampFile(s.id))
         }, done = { put(day(date).let { it.copy(stamps = it.stamps + s) }); version++ })
     }
@@ -113,7 +114,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
                 val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
                 val seal = Seal(date, hour, mark, bottom, sealInk.argb, s.id.hashCode() and 0xFFFF)
                 val png = store.stampFile(s.id)
-                Photos.writePng(StampRenderer.render(photo, cut, seal), png)
+                Photos.writePng(StampRenderer.render(photo, cut, seal, s.id.hashCode()), png)
                 photo.recycle()
                 if (saveToPhotos && Photos.saveToGallery(getApplication<Application>(), png, "annales-$date-${s.id.take(4)}")) saved++
             }
@@ -188,6 +189,20 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         BitmapFactory.decodeFile(store.stampFile(id).path)?.asImageBitmap()
 
     // ---- settings ----
+    fun changeLook(v: com.annales.journal.ui.Look) { com.annales.journal.ui.K.look = v; settings.look = v.name }
+
+    /** A drawn stamp of the day's sky instead of a photo: the weather you pick, that night's moon, hills in the mood colour. */
+    fun addSky(date: LocalDate, wx: com.annales.journal.render.SkyStamp.Weather) {
+        val mood = day(date).mood?.let { com.annales.journal.data.Moods.color(it) }
+        val art = com.annales.journal.render.SkyStamp.draw(date, wx, mood, (date.toEpochDay() * 31 + day(date).stamps.size).toInt())
+        addStamp(date, art)
+    }
+
+    /** The same date in earlier years, newest first, for "On this day". Only days with stamps. */
+    fun onThisDay(date: LocalDate): List<Day> = days.values
+        .filter { it.date.year < date.year && it.date.monthValue == date.monthValue && it.date.dayOfMonth == date.dayOfMonth && it.stamps.isNotEmpty() }
+        .sortedByDescending { it.date }
+
     fun changeOffice(v: String) { office = v; settings.office = v }
     fun changePostcode(v: String) { postcode = v; settings.postcode = v }
     fun changeInk(v: Ink) { ink = v; settings.ink = v }
@@ -202,7 +217,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         work({
             drafts.forEach { s ->
                 val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
-                Photos.writePng(StampRenderer.render(photo, v, null), store.stampFile(s.id))
+                Photos.writePng(StampRenderer.render(photo, v, null, s.id.hashCode()), store.stampFile(s.id))
                 photo.recycle()
             }
         }, done = { version++ })

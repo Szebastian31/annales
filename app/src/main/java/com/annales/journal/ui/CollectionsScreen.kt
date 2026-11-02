@@ -100,7 +100,7 @@ fun CollectionsScreen(model: AnnalesModel, onOpen: (Collection) -> Unit, onNew: 
 @Composable
 fun Chip(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) Color.White else K.ink),
+    style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.onAcc else K.ink),
     modifier = Modifier.background(if (on) K.acc else K.surface, RoundedCornerShape(99.dp)).clickable(onClick = onClick)
         .padding(horizontal = 12.dp, vertical = 7.dp),
 )
