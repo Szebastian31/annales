@@ -9,6 +9,7 @@ import java.net.URLEncoder
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
+import com.annales.journal.render.SkyStamp.Weather as W
 
 /**
  * What the sibling apps add to a day. Weather is worked out here the way Consensus Weather does it (the same thirteen
@@ -87,8 +88,7 @@ object Siblings {
     }
 
     /** WMO code → a short name, and the sky stamp it matches. */
-    fun describe(code: Int): Pair<String, com.annales.journal.render.SkyStamp.Weather> {
-        val W = com.annales.journal.render.SkyStamp.Weather
+    fun describe(code: Int): Pair<String, W> {
         return when (code) {
             0 -> "Clear" to W.CLEAR
             1 -> "Mostly clear" to W.CLEAR
