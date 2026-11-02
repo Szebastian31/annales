@@ -102,13 +102,40 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         val (full, other) = felt.partition { moonLight(it.date) > .9 }
         val (friends, noFriends) = felt.partition { "Friends" in it.factors || "Family" in it.factors || "Partner" in it.factors }
         val (stamped, bare) = felt.partition { it.stamps.size >= 2 }
-        return listOf(
+        return (listOf(
             Link("✈", "Trips", onTrip, home, "On a trip", "At home"),
             Link("♡", "Your people", friends, noFriends, "Friends, family, partner", "Other days"),
             Link("☕", "Weekends", weekend, weekday, "Sat · Sun", "Weekdays"),
             Link("❏", "Busy days", stamped, bare, "2–3 stamps", "0–1 stamp"),
             Link("☾", "Full moon", full, other, "Near full", "Other nights"),
-        ).sortedWith(compareByDescending<Link> { it.level }.thenByDescending { abs(it.diff) })
+        ) + appLinks()).sortedWith(compareByDescending<Link> { it.level }.thenByDescending { abs(it.diff) })
+    }
+
+    /**
+     * Connections that need a sibling app: sunny days (Consensus Weather), a lot of music (Fidelis), spending within what's
+     * safe (Kalendae). Each only shows once some days carry that app's numbers.
+     */
+    private fun appLinks(): List<Link> {
+        val out = mutableListOf<Link>()
+        val wx = felt.filter { it.extras["wx.code"] != null }
+        if (wx.isNotEmpty()) {
+            val (sun, rest) = wx.partition { (it.extras["wx.code"]?.toIntOrNull() ?: 99) <= 1 }
+            out += Link("☀", "Sunny days", sun, rest, "Clear sky", "Cloud, rain, fog")
+        }
+        val mus = felt.filter { it.extras["music.minutes"]?.toIntOrNull() != null }
+        if (mus.isNotEmpty()) {
+            val mid = mus.mapNotNull { it.extras["music.minutes"]?.toIntOrNull() }.sorted().let { it[it.size / 2] }
+            val (lots, little) = mus.partition { (it.extras["music.minutes"]?.toIntOrNull() ?: 0) > mid }
+            out += Link("♪", "Lots of music", lots, little, "Over $mid min", "$mid min or less")
+        }
+        val money = felt.filter { it.extras["money.spentN"] != null && it.extras["money.safeN"] != null }
+        if (money.isNotEmpty()) {
+            val (within, over) = money.partition {
+                (it.extras["money.spentN"]?.toDoubleOrNull() ?: 0.0) <= (it.extras["money.safeN"]?.toDoubleOrNull() ?: 0.0)
+            }
+            out += Link("¤", "Within budget", within, over, "Spent ≤ safe", "Spent more")
+        }
+        return out
     }
 
     /** A gentle note from your own entries: never a lecture, just what your good days tend to have. */

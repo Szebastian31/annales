@@ -4,7 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.padding
@@ -114,38 +114,48 @@ fun StampView(
         value = withContext(Dispatchers.IO) { model.stampImage(id) }
     }
     val small = width < 110.dp
+    // the paper inside the image (saved stamps carry a margin for the cancels; ones saved before 0.5.0 don't)
+    val padded = img?.let { it.width > SR.W } ?: false
+    val pw = img?.let { if (padded) it.width - SR.PL - SR.PR else it.width } ?: SR.W
+    val ph = img?.let { if (padded) it.height - SR.PT - SR.PB else it.height } ?: SR.H
+    // the slot is always portrait-sized. Square and wide stamps keep the mockup's proportions and spill a little sideways,
+    // like the cancels do; tiny thumbnails, which clip, shrink them to fit instead.
+    val u = if (bleed) width / SR.W else minOf(width / pw, width * 1.25f / ph)
     Box(
         modifier
             .rotate(rotation)
             .size(width, width * 1.25f)
-            .then(if (bleed) Modifier else Modifier.clipToBounds())
+            .then(if (bleed) Modifier else Modifier.clipToBounds()),
+        contentAlignment = Alignment.Center,
     ) {
-        img?.let { bmp ->
-            if (bmp.width > SR.W) {
-                // a stamp with its margin: draw it larger, so the paper fills this box and the cancels spill past it
-                Image(
-                    bmp, null, contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.align(Alignment.Center)
-                        .offset(x = width * ((SR.PR - SR.PL) / 2f / SR.W), y = width * 1.25f * ((SR.PB - SR.PT) / 2f / SR.H))
-                        .requiredSize(width * (SR.OW.toFloat() / SR.W), width * 1.25f * (SR.OH.toFloat() / SR.H)),
-                )
-            } else Image(bmp, null, Modifier.aspectRatio(.8f), contentScale = ContentScale.Fit) // saved before 0.5.0
-        }
-        Text(
-            "$dayOfYear",
-            style = TextStyle(
-                fontFamily = K.serif, fontWeight = FontWeight.Bold, color = Color.White, fontSize = if (small) 10.5.sp else 16.sp,
-                shadow = Shadow(Color(0x80000000), blurRadius = 6f),
-            ),
-            modifier = Modifier.align(Alignment.TopStart).padding(start = if (small) 7.dp else 13.dp, top = if (small) 7.dp else 12.dp),
-        )
-        if (mood != null) {
-            val s = if (small) 7.dp else 11.dp
-            Box(
-                Modifier.align(Alignment.TopEnd).padding(if (small) 7.dp else 13.dp).size(s)
-                    .background(Color(Moods.color(mood)), CircleShape)
-                    .border(if (small) 1.5.dp else 2.dp, Color.White, CircleShape)
+        Box(Modifier.requiredSize(u * pw, u * ph)) {
+            img?.let { bmp ->
+                if (padded) {
+                    // draw it larger, so the paper fills this box and the cancels spill past it
+                    Image(
+                        bmp, null, contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.align(Alignment.Center)
+                            .offset(x = u * ((SR.PR - SR.PL) / 2f), y = u * ((SR.PB - SR.PT) / 2f))
+                            .requiredSize(u * bmp.width, u * bmp.height),
+                    )
+                } else Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            }
+            Text(
+                "$dayOfYear",
+                style = TextStyle(
+                    fontFamily = K.serif, fontWeight = FontWeight.Bold, color = Color.White, fontSize = if (small) 10.5.sp else 16.sp,
+                    shadow = Shadow(Color(0x80000000), blurRadius = 6f),
+                ),
+                modifier = Modifier.align(Alignment.TopStart).padding(start = if (small) 7.dp else 13.dp, top = if (small) 7.dp else 12.dp),
             )
+            if (mood != null) {
+                val s = if (small) 7.dp else 11.dp
+                Box(
+                    Modifier.align(Alignment.TopEnd).padding(if (small) 7.dp else 13.dp).size(s)
+                        .background(Color(Moods.color(mood)), CircleShape)
+                        .border(if (small) 1.5.dp else 2.dp, Color.White, CircleShape)
+                )
+            }
         }
     }
 }

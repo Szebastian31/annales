@@ -37,6 +37,14 @@ object StampRenderer {
     const val OH = H + PT + PB
     private val k = W / 150f
 
+    /**
+     * The mockup's three shapes, as paper sizes. The cropped photo is saved at one of them, so a stamp's shape is simply
+     * its photo's size; everything saved before 0.6.0 is portrait.
+     */
+    val shapes = listOf(Triple("portrait", "Portrait", 800 to 1000), Triple("square", "Square", 900 to 900), Triple("wide", "Wide", 1000 to 820))
+    fun size(shape: String) = shapes.firstOrNull { it.first == shape }?.third ?: (W to H)
+    fun shapeOf(w: Int, h: Int) = when { w > h -> "wide"; w == h -> "square"; else -> "portrait" }
+
     /** The ten edges from the mockup: key, name, and a few words on what they look like. */
     val cuts = listOf(
         Triple("classic", "Classic", "round holes"), Triple("scallop", "Scallop", "big soft bites"),
@@ -117,25 +125,27 @@ object StampRenderer {
         return Path(paper).apply { op(holes, Path.Op.DIFFERENCE) }
     }
 
-    /** Just the perforated paper, W × H with no margin and no ink: what goes into Photos. */
+    /** Just the perforated paper, the photo's size with no margin and no ink: what goes into Photos. */
     fun clean(photo: Bitmap, cut: String, seed: Int = 7): Bitmap {
-        val out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+        val w = photo.width; val h = photo.height
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(out)
-        c.clipPath(shape(cut, seed))
-        c.drawBitmap(photo, null, Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        c.clipPath(shape(cut, seed, w.toFloat(), h.toFloat()))
+        c.drawBitmap(photo, null, Rect(0, 0, w, h), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
         return out
     }
 
-    /** [photo] is the cropped photo (any size, 4:5). Without a [seal] it's a draft: just the cut paper. */
+    /** [photo] is the cropped photo, at one of the [shapes]' sizes. Without a [seal] it's a draft: just the cut paper. */
     fun render(photo: Bitmap, cut: String, seal: Seal?, seed: Int = 7): Bitmap {
-        val out = Bitmap.createBitmap(OW, OH, Bitmap.Config.ARGB_8888)
+        val w = photo.width; val h = photo.height
+        val out = Bitmap.createBitmap(w + PL + PR, h + PT + PB, Bitmap.Config.ARGB_8888)
         val c = Canvas(out)
         c.save()
         c.translate(PL.toFloat(), PT.toFloat())
-        c.clipPath(shape(cut, seed))
-        c.drawBitmap(photo, null, Rect(0, 0, W, H), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        c.clipPath(shape(cut, seed, w.toFloat(), h.toFloat()))
+        c.drawBitmap(photo, null, Rect(0, 0, w, h), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
         c.restore()
-        if (seal != null) c.drawBitmap(cancels(seal), 0f, 0f, null)
+        if (seal != null) c.drawBitmap(cancels(seal, w, h), 0f, 0f, null)
         return out
     }
 
@@ -151,24 +161,24 @@ object StampRenderer {
         val noise = r.nextInt()
     }
 
-    private fun cancels(s: Seal): Bitmap {
-        val layer = Bitmap.createBitmap(OW, OH, Bitmap.Config.ARGB_8888)
+    private fun cancels(s: Seal, w: Int, h: Int): Bitmap {
+        val layer = Bitmap.createBitmap(w + PL + PR, h + PT + PB, Bitmap.Config.ARGB_8888)
         val c = Canvas(layer)
         val pm = Hit(s.seed)
         val kl = Hit(s.seed + 101)
 
         // the date ring: 62% of the short side, hanging off the right edge
-        val R = min(W, H) * .62f
+        val R = min(w, h) * .62f
         mark(c, pm) { m ->
-            m.translate(PL + W - R * .58f + pm.dx, PT + H * .5f - R * .42f + pm.dy)
+            m.translate(PL + w - R * .58f + pm.dx, PT + h * .5f - R * .42f + pm.dy)
             m.rotate(pm.rot, R / 2, R / 2)
             m.scale(R / 100f, R / 100f)
             datownik(m, s)
         }
         // the wavy lines: a quarter of them off the left edge, just under the day number
-        val K = min(W, H) * .3f
+        val K = min(w, h) * .3f
         mark(c, kl) { m ->
-            m.translate(PL - K * 1.9f * .25f - kl.dx * .3f, PT + H * .16f + kl.dy * .4f)
+            m.translate(PL - K * 1.9f * .25f - kl.dx * .3f, PT + h * .16f + kl.dy * .4f)
             m.rotate(pm.rot * .4f - 13f, K * .95f, K / 2)
             m.scale(K / 60f, K / 60f)
             waves(m, s.ink)
@@ -178,10 +188,10 @@ object StampRenderer {
 
     /** Draws one mark on its own bitmap, wears its ink thin in patches, then presses it on [target] at the hit's pressure. */
     private fun mark(target: Canvas, hit: Hit, draw: (Canvas) -> Unit) {
-        val m = Bitmap.createBitmap(OW, OH, Bitmap.Config.ARGB_8888)
+        val m = Bitmap.createBitmap(target.width, target.height, Bitmap.Config.ARGB_8888)
         val mc = Canvas(m)
         mc.save(); draw(mc); mc.restore()
-        val mask = wear(hit)
+        val mask = wear(hit, target.width, target.height)
         mc.drawBitmap(mask, 0f, 0f, Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) })
         mask.recycle()
         target.drawBitmap(m, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG).apply { alpha = (hit.op * 255).roundToInt() })
@@ -189,8 +199,8 @@ object StampRenderer {
     }
 
     /** An alpha mask: mostly solid, with soft thin patches and fine grain. */
-    private fun wear(hit: Hit): Bitmap {
-        val out = Bitmap.createBitmap(OW, OH, Bitmap.Config.ARGB_8888)
+    private fun wear(hit: Hit, w: Int, h: Int): Bitmap {
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val mc = Canvas(out)
         val r = Random(hit.noise)
         fun grid(cols: Int, rows: Int, lo: Float, hi: Float): Bitmap {
@@ -201,7 +211,7 @@ object StampRenderer {
             }
             return g
         }
-        val full = Rect(0, 0, OW, OH)
+        val full = Rect(0, 0, w, h)
         val smooth = Paint(Paint.FILTER_BITMAP_FLAG)
         val patches = grid(10, 12, 1f - hit.patch * 2.2f, 1.6f)
         mc.drawBitmap(patches, null, full, smooth)

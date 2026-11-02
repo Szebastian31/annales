@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.5.1).** Today, the Journal, Collections, Insights, ten perforations and six looks are in. Backups come in a later build.
+> **Pre-release (0.6.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
 
 ---
 
@@ -18,7 +18,7 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 
 ## What it does
 
-- **Up to three stamps a day.** Pick a photo, move and pinch it under the 4:5 frame, and it comes back with a perforated edge cut from the photo itself.
+- **Up to three stamps a day.** Pick a photo, choose **Portrait**, **Square** or **Wide**, move and pinch it under the frame, and it comes back with a perforated edge cut from the photo itself.
 - **How did it feel?** Drag along the horizon: it frowns towards Very Unpleasant in violet and smiles towards Very Pleasant in blue, with a glowing orb riding the line. The mood dot sits in the stamp's corner.
 - **One line.** Up to 120 characters about the day, with a few prompts to start from.
 - **What shaped it.** Pick the feelings that fit the mood, and what had the biggest impact (Work, Friends, Travel…).
@@ -34,6 +34,8 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 - **Six looks.** Kraft, Airmail, Gallery, Herbarium, Riviera, and Ink for evenings.
 - **The day's sky.** No photo? Pick the weather and get a drawn stamp with that night's real moon phase and hills in the day's mood colour.
 - **On this day.** The same date in an earlier year, on the Today page.
+- **The postmark card.** Each day lists what the rest of the family saw: the weather worked out the Consensus Weather way (thirteen forecast models, averaged, with how well they agree), the moon, your top track and minutes listened from **Fidelis**, what you spent against safe-to-spend from **Kalendae**, and the day's tone from **Augur**. Profile shows which of them are installed and sharing. Insights uses them too: sunny days, days with lots of music, days within budget.
+- **Backups.** Save everything (journal, collections, settings, photos and stamps) to one file, optionally locked with a password (AES-256, the same format as Kalendae), and restore it on a new phone.
 - **Evening reminder.** A soft nudge at 21:30 if today is still unsealed.
 
 ## Getting started
@@ -47,7 +49,7 @@ Updating: install the new APK over the old one. Your journal stays.
 
 ## Privacy
 
-Everything stays on your phone: the journal, the cropped photos and the stamps. Annales has no internet permission at all. The only thing that leaves the app is what you seal, into your own Photos.
+Everything stays on your phone: the journal, the cropped photos and the stamps. The internet is used for one thing only, the weather: Annales asks the free Open-Meteo forecast (the one Consensus Weather uses) for your post office's town and the day, and nothing about you goes with it. Fidelis, Kalendae and Augur share their daily summaries with Annales on the phone itself, never over the internet, and only to Annales. The only other thing that leaves the app is what you seal, into your own Photos, and backup files you save yourself.
 
 ---
 
@@ -60,8 +62,8 @@ A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), wit
 
 | Where | What it is |
 | --- | --- |
-| `data/` | `JournalStore` (journal.json, photos and stamps in app storage), `CollectionStore` (collections.json) and `Places`, `Insights` (all the maths for the Insights tab), `Settings`, `Tags`, `Moods`, `Ink` |
-| `render/StampRenderer.kt` | The ten perforations, the datownik, the wavy lines and the ink wear |
+| `data/` | `JournalStore` (journal.json, photos and stamps in app storage), `CollectionStore` (collections.json) and `Places`, `Insights` (all the maths for the Insights tab), `Settings`, `Tags`, `Moods`, `Ink`, `Siblings` (the weather and the sibling apps' summaries), `Backup` (backup files) |
+| `render/StampRenderer.kt` | The three shapes, the ten perforations, the datownik, the wavy lines and the ink wear |
 | `render/SkyStamp.kt` | The drawn sky stamp: weather, moon phase, mood-coloured hills |
 | `render/Photos.kt` | Decoding picked photos, saving sealed stamps to Photos › Annales |
 | `reminder/` | The 21:30 reminder and putting it back after a restart |
@@ -69,6 +71,7 @@ A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), wit
 | `tools/icon.js`, `tools/icon.html`, `tools/icon.sh` | Draw the icon and render every PNG in `icons/` and the launcher layers |
 | `tools/install.sh` | Waits for the build of your last push and installs it on the plugged-in phone |
 | `.github/workflows/android.yml` | Builds the APK and publishes it to the latest-debug release |
+| `SHARING.md` | How Fidelis, Kalendae and Augur share a day with Annales: the address, who may ask, and every key |
 
 **Signing.** `annales-debug.keystore` is the family's debug key, so every build installs over the last one.
 

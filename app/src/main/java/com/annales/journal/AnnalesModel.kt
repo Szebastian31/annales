@@ -161,6 +161,13 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     fun original(s: Stamp): Bitmap? = BitmapFactory.decodeFile(store.originalFile(s.id).path)
     fun hasOriginal(s: Stamp) = store.originalFile(s.id).exists()
 
+    /** Portrait, square or wide, read from the size of the stamp's cropped photo. */
+    fun shapeOf(s: Stamp): String {
+        val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(store.photoFile(s.id).path, o)
+        return if (o.outWidth > 0) StampRenderer.shapeOf(o.outWidth, o.outHeight) else "portrait"
+    }
+
     fun removeStamp(date: LocalDate, s: Stamp) {
         edit(date) { d -> d.copy(stamps = d.stamps.filterNot { it.id == s.id }) }
         if (collections.any { s.id in it.ids || it.cover == s.id })
@@ -222,6 +229,74 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
             }
         })
     }
+
+    // ---- backup ----
+
+    fun backupTo(uri: android.net.Uri, password: String?) = viewModelScope.launch {
+        busy = true
+        val ok = withContext(Dispatchers.IO) { runCatching { com.annales.journal.data.Backup.write(getApplication(), uri, password) }.isSuccess }
+        busy = false
+        message = if (ok) (if (password.isNullOrEmpty()) "Backup saved." else "Backup saved, locked with your password.") else "Couldn't write the backup there."
+    }
+
+    /** Null if it opens without a password, true if it needs one; false if it isn't an Annales backup. */
+    suspend fun backupLocked(uri: android.net.Uri): Boolean? = withContext(Dispatchers.IO) {
+        runCatching { com.annales.journal.data.Backup.locked(getApplication(), uri) }.getOrElse { return@withContext false }.let { if (it) true else null }
+    }
+
+    fun restoreFrom(uri: android.net.Uri, password: String?, done: (Boolean) -> Unit) = viewModelScope.launch {
+        busy = true
+        val r = withContext(Dispatchers.IO) { runCatching { com.annales.journal.data.Backup.restore(getApplication(), uri, password) } }
+        busy = false
+        r.exceptionOrNull()?.let { e ->
+            message = if (e is com.annales.journal.data.Backup.WrongPassword) "That password doesn't open this backup." else "That file isn't an Annales backup."
+            done(false); return@launch
+        }
+        days = withContext(Dispatchers.IO) { store.load() }
+        collections = withContext(Dispatchers.IO) { collStore.load() }
+        office = settings.office; postcode = settings.postcode; ink = settings.ink; cut = settings.cut
+        saveToPhotos = settings.saveToPhotos; reminder = settings.reminder; name = settings.name
+        keepOriginals = settings.keepOriginals; haptics = settings.haptics
+        com.annales.journal.ui.K.look = runCatching { com.annales.journal.ui.Look.valueOf(settings.look) }.getOrDefault(com.annales.journal.ui.Look.KRAFT)
+        version++
+        message = "Restored ${days.values.sumOf { it.stamps.size }} stamps from the backup."
+        done(true)
+    }
+
+    // ---- sibling apps ----
+
+    /**
+     * Fills [date] in from the sibling apps: the weather (worked out here), and whatever Fidelis, Kalendae and Augur share.
+     * A sealed day keeps what it had when it was sealed; an open day refreshes each time you look at it.
+     */
+    fun fillIn(date: LocalDate) {
+        val d = day(date)
+        if (d.sealed && d.extras.isNotEmpty()) return
+        val place = tripOn(date)?.place?.ifBlank { null } ?: prettyPlace(office)
+        viewModelScope.launch {
+            val got = withContext(Dispatchers.IO) {
+                val app = getApplication<Application>()
+                val m = mutableMapOf<String, String>()
+                runCatching { com.annales.journal.data.Siblings.weather(place, date) }.getOrNull()?.let { m.putAll(it) }
+                com.annales.journal.data.Siblings.sharing.forEach { a -> m.putAll(com.annales.journal.data.Siblings.shared(app, a, date)) }
+                m
+            }
+            if (got.isEmpty()) return@launch
+            val now = day(date)
+            if (now.sealed && now.extras.isNotEmpty()) return@launch
+            val merged = now.extras + got
+            if (merged != now.extras) put(now.copy(extras = merged)) // not an edit: no "re-seal" prompt
+        }
+    }
+
+    /** "GLIWICE 1" → "Gliwice", the town to ask the weather for. */
+    private fun prettyPlace(mark: String) = mark.trim().split(" ").first().lowercase().replaceFirstChar { it.titlecase() }
+
+    /** Which sibling apps are installed, for Profile. */
+    fun installed(app: com.annales.journal.data.Siblings.App) = com.annales.journal.data.Siblings.installed(getApplication(), app)
+
+    /** Has this app ever shared anything with Annales? */
+    fun hasShared(prefix: String) = days.values.any { d -> d.extras.keys.any { it.startsWith(prefix) } }
 
     // ---- collections ----
 

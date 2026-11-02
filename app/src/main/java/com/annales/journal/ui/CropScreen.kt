@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,20 +53,22 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** "Frame the memory": move and pinch the photo under a 4:5 stamp frame. */
+/** "Frame the memory": move and pinch the photo under the stamp frame, in portrait, square or wide. */
 @Composable
-fun CropScreen(photo: Bitmap, cut: String = "classic", onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
+fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "portrait", onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
     val image = remember(photo) { photo.asImageBitmap() }
     var box by remember { mutableStateOf(IntSize.Zero) }
     var scale by remember { mutableFloatStateOf(0f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var filter by remember { mutableStateOf("natural") }
+    var shape by remember { mutableStateOf(startShape) }
+    val (pw, ph) = StampRenderer.size(shape)
     val tint = remember(filter) { androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix(com.annales.journal.render.Filters.matrix(filter))) }
 
-    // the frame: 78% of the width, 4:5, centred (and never taller than the space)
+    // the frame: about 80% of the width in the stamp's shape, centred (and never taller than the space)
     fun frame(): Rect {
-        val fw = min(box.width * .78f, box.height * .8f * .8f)
-        val fh = fw * 1.25f
+        val fw = min(box.width * (if (pw > ph) .86f else .8f), box.height * .8f * pw / ph)
+        val fh = fw * ph / pw
         return Rect(Offset((box.width - fw) / 2, (box.height - fh) / 2), Size(fw, fh))
     }
     fun minScale(f: Rect) = max(f.width / photo.width, f.height / photo.height)
@@ -90,7 +93,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", onCancel: () -> Unit, onD
                 val w = (f.width / scale).roundToInt().coerceIn(1, photo.width - left)
                 val h = (f.height / scale).roundToInt().coerceIn(1, photo.height - top)
                 val part = Bitmap.createBitmap(photo, left, top, w, h)
-                onDone(com.annales.journal.render.Filters.apply(Bitmap.createScaledBitmap(part, StampRenderer.W, StampRenderer.H, true), filter))
+                onDone(com.annales.journal.render.Filters.apply(Bitmap.createScaledBitmap(part, pw, ph, true), filter))
             }) { Text("Done", color = Color(0xFFF2C9A0), fontWeight = FontWeight.Bold) }
         }
 
@@ -99,7 +102,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", onCancel: () -> Unit, onD
             val f = frame(); val s = minScale(f)
             scale = s
             offset = Offset(box.width / 2f - photo.width * s / 2, box.height / 2f - photo.height * s / 2)
-        }.pointerInput(photo) {
+        }.pointerInput(photo, shape) {
             detectTransformGestures { centroid, pan, zoom, _ ->
                 val f = frame(); val lo = minScale(f)
                 val s = (scale * zoom).coerceIn(lo, lo * 6f)
@@ -140,18 +143,29 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", onCancel: () -> Unit, onD
                 modifier = Modifier.weight(1f).padding(start = 12.dp),
             )
         }
+        // Shape: the mockup's portrait, square and wide. The photo stays where it is, grown just enough to fill the new frame.
+        LaunchedEffect(shape) {
+            if (box == IntSize.Zero || scale <= 0f) return@LaunchedEffect
+            val f = frame(); val s = max(scale, minScale(f))
+            offset = clamp(f, s, offset); scale = s
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            StampRenderer.shapes.forEach { (k, n, _) -> CropChip(n, k == shape) { shape = k } }
+        }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            com.annales.journal.render.Filters.all.forEach { (k, n) ->
-                val on = k == filter
-                Text(
-                    n, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) Color(0xFF1F1A16) else Color.White),
-                    modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF))
-                        .clickable { filter = k }.padding(horizontal = 14.dp, vertical = 8.dp),
-                )
-            }
+            com.annales.journal.render.Filters.all.forEach { (k, n) -> CropChip(n, k == filter) { filter = k } }
         }
     }
+}
+
+@Composable
+private fun CropChip(text: String, on: Boolean, onClick: () -> Unit) {
+    Text(
+        text, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) Color(0xFF1F1A16) else Color.White),
+        modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF))
+            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }

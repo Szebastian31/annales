@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -166,11 +167,11 @@ fun AnnalesApp(model: AnnalesModel) {
         viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
         adding?.let { date ->
             BackHandler { adding = null }
-            AddSheet(onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx, replacing); replacing = null }, onCancel = { adding = null; replacing = null })
+            AddSheet(suggested = model.day(date).extras["wx.code"]?.toIntOrNull()?.let { com.annales.journal.data.Siblings.describe(it).second }, onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx, replacing); replacing = null }, onCancel = { adding = null; replacing = null })
         }
         cropping?.let { (date, bmp, target) ->
             BackHandler { cropping = null }
-            CropScreen(bmp, model.cut, onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped, replace = target, original = bmp) }
+            CropScreen(bmp, model.cut, startShape = target?.let { model.shapeOf(it) } ?: "portrait", onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped, replace = target, original = bmp) }
         }
 
         model.message?.let { msg ->
@@ -206,7 +207,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
 
 /** "Add a stamp": a photo from the library, or a drawn stamp of the day's sky in the weather you pick. */
 @Composable
-private fun AddSheet(onPhoto: () -> Unit, onSky: (com.annales.journal.render.SkyStamp.Weather) -> Unit, onCancel: () -> Unit) {
+private fun AddSheet(suggested: com.annales.journal.render.SkyStamp.Weather? = null, onPhoto: () -> Unit, onSky: (com.annales.journal.render.SkyStamp.Weather) -> Unit, onCancel: () -> Unit) {
     Box(
         Modifier.fillMaxSize().background(Color(0x991F1A16)).clickable(onClick = onCancel),
         contentAlignment = Alignment.BottomCenter,
@@ -227,11 +228,13 @@ private fun AddSheet(onPhoto: () -> Unit, onSky: (com.annales.journal.render.Sky
                 }
             }
             Text("THE DAY'S SKY", style = KickerStyle, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
-            Text("A drawn stamp of the weather and tonight's moon, with hills in the day's mood colour.", style = SmallStyle)
+            Text(if (suggested != null) "Consensus Weather says ${suggested.label.lowercase()} that day. A drawn stamp of the weather and that night's moon, with hills in the mood colour." else "A drawn stamp of the weather and tonight's moon, with hills in the day's mood colour.", style = SmallStyle)
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
                 com.annales.journal.render.SkyStamp.Weather.entries.forEach { wx ->
                     Column(
-                        Modifier.weight(1f).background(K.page, RoundedCornerShape(12.dp)).clickable { onSky(wx) }.padding(vertical = 10.dp),
+                        Modifier.weight(1f).background(if (wx == suggested) K.accSoft else K.page, RoundedCornerShape(12.dp))
+                            .border(if (wx == suggested) 1.5.dp else 0.dp, if (wx == suggested) K.acc else Color.Transparent, RoundedCornerShape(12.dp))
+                            .clickable { onSky(wx) }.padding(vertical = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(wx.glyph, fontSize = 22.sp, color = K.ink)

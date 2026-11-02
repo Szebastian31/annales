@@ -236,7 +236,7 @@ private fun Connections(ins: Insights) {
         }
     }
     Text(
-        "Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Weather, music and money connections come once Annales can read Consensus Weather, Fidelis and Kalendae.",
+        "Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Sunny days use Consensus Weather's models; music and money appear once Fidelis and Kalendae share their days.",
         style = SmallStyle, modifier = Modifier.padding(top = 10.dp),
     )
 }

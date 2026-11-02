@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Only for the weather: the same free Open-Meteo forecast Consensus Weather uses. Nothing about you is sent. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- The evening reminder ("Today is still unsealed"), and putting it back after a restart. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Android 11+ hides other apps unless they are named here: the siblings Annales reads from or opens. -->
+    <queries>
+        <package android:name="com.fidelis.player" />
+        <package android:name="com.kalendae.money" />
+        <package android:name="com.augur.stars" />
+        <package android:name="com.consensus.weather" />
+        <package android:name="com.caelum.sky" />
+        <provider android:authorities="com.fidelis.player.annales" />
+        <provider android:authorities="com.kalendae.money.annales" />
+        <provider android:authorities="com.augur.stars.annales" />
+    </queries>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application

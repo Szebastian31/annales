@@ -29,6 +29,8 @@ data class Day(
     val bottom: String = "",
     /** Changed since it was sealed: the Seal button offers "Save & re-seal". */
     val dirty: Boolean = false,
+    /** What the sibling apps added: wx.* (weather), music.*, money.*, augur.* — frozen when the day is sealed. */
+    val extras: Map<String, String> = emptyMap(),
 ) {
     val canAdd get() = stamps.size < MAX_STAMPS
     companion object { const val MAX_STAMPS = 3 }
@@ -88,6 +90,7 @@ class JournalStore(context: Context) {
             ink = if (o.has("ink")) o.getString("ink") else null,
             bottom = o.optString("bottom"),
             dirty = o.optBoolean("dirty"),
+            extras = o.optJSONObject("extras")?.let { e -> e.keys().asSequence().associateWith { e.getString(it) } } ?: emptyMap(),
         )
     }
 
@@ -105,6 +108,7 @@ class JournalStore(context: Context) {
         d.ink?.let { put("ink", it) }
         put("bottom", d.bottom)
         put("dirty", d.dirty)
+        put("extras", JSONObject(d.extras))
     }
 }
 

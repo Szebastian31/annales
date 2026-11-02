@@ -26,6 +26,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,39 +124,53 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 
         Section("Postmark sources", "sibling apps")
         Card {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            val S = com.annales.journal.data.Siblings
             listOf(
-                Triple("Consensus Weather", "Weather, temperature, model agreement", false),
-                Triple("Caelum Sky", "Moon phase, what was overhead", true),
-                Triple("Fidelis Music", "Top track and listening time", false),
-                Triple("Kalendae", "Spent vs safe-to-spend", false),
-                Triple("Augur", "Daily tone, just for fun", false),
-            ).forEach { (n, s, on) ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                Triple(S.WEATHER, "wx.", "worked out here"),
+                Triple(S.CAELUM, "", "calculated here"),
+                Triple(S.FIDELIS, "music.", "shares"),
+                Triple(S.KALENDAE, "money.", "shares"),
+                Triple(S.AUGUR, "augur.", "shares"),
+            ).forEach { (app, prefix, how) ->
+                val has = model.installed(app)
+                val status = when {
+                    prefix == "" -> "calculated here" to K.green
+                    prefix == "wx." && model.hasShared(prefix) -> "same 13 models" to K.green
+                    prefix == "wx." -> "fetched when online" to K.muted
+                    !has -> "not installed" to K.muted
+                    model.hasShared(prefix) -> "connected" to K.green
+                    else -> "needs its update" to K.acc
+                }
+                Row(
+                    Modifier.fillMaxWidth().clickable(enabled = has) {
+                        ctx.packageManager.getLaunchIntentForPackage(app.pkg)?.let { ctx.startActivity(it) }
+                    }.padding(vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(Modifier.weight(1f)) {
-                        Text(n, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
-                        Text(s, style = SmallStyle)
+                        Text(app.name, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
+                        Text(app.what, style = SmallStyle)
                     }
-                    Text(if (on) "calculated here" else "not connected yet", style = SmallStyle.copy(fontSize = 11.sp, color = if (on) K.green else K.muted))
+                    Text(status.first, style = SmallStyle.copy(fontSize = 11.sp, color = status.second, fontWeight = FontWeight.Bold))
+                    if (has) Text("  ›", style = BodyStyle.copy(color = K.muted))
                 }
             }
-            Text("Annales can't read your other apps yet. The moon is worked out on the phone; the rest join once the apps can share with each other.", style = SmallStyle, modifier = Modifier.padding(top = 6.dp))
+            Text(
+                "Weather is the Consensus Weather forecast, fetched from Open-Meteo for your post office's town (or the trip's city). Fidelis, Kalendae and Augur each hand Annales a one-line summary of the day; nothing leaves your phone.",
+                style = SmallStyle, modifier = Modifier.padding(top = 6.dp),
+            )
         }
 
         Section("Ritual & privacy")
         Card {
             Toggle("Evening reminder", "A soft nudge at 21:30 if today is still unsealed", model.reminder, model::changeReminder)
             Toggle("Seal haptics", "The satisfying thunk when you seal", model.haptics, model::changeHaptics)
-            Toggle("On this phone only", "No account, no cloud, no analytics", true, null)
-            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Encrypted backup file", style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
-                    Text("Same format as Kalendae", style = SmallStyle)
-                }
-                Text("coming soon", style = SmallStyle.copy(fontSize = 11.sp))
-            }
+            Toggle("On this phone only", "No account, no cloud, no analytics. Internet only for the weather", true, null)
+            BackupRow(model)
         }
         Text(
-            "Annales 0.5.1 · pre-release.",
+            "Annales 0.6.0 · pre-release.",
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
         )
     }
@@ -214,4 +232,70 @@ private fun CutTile(key: String, name: String, on: Boolean, modifier: Modifier, 
         drawPath(path.asComposePath(), if (on) K.acc else K.muted)
     }
     Text(name, style = TextStyle(fontSize = 10.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal), maxLines = 1)
+}
+
+/**
+ * "Encrypted backup file": save everything (journal, collections, settings, photos and stamps) to a file you keep, optionally
+ * locked with a password, in the same format as Kalendae; or restore one, which replaces what's on this phone.
+ */
+@Composable
+private fun BackupRow(model: AnnalesModel) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var ask by remember { mutableStateOf<String?>(null) }          // "save" or "open": which password dialog is up
+    var pending by remember { mutableStateOf<android.net.Uri?>(null) }
+    var pw by remember { mutableStateOf("") }
+    val save = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> if (uri != null) { model.backupTo(uri, pw.ifBlank { null }); pw = "" } }
+    val open = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            when (model.backupLocked(uri)) {
+                false -> model.message = "That file isn't an Annales backup."
+                true -> { pending = uri; pw = ""; ask = "open" }
+                null -> model.restoreFrom(uri, null) { }
+            }
+        }
+    }
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text("Encrypted backup file", style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
+        Text("Everything, photos included, in the same format as Kalendae. Lock it with a password (AES-256).", style = SmallStyle)
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { pw = ""; ask = "save" }, enabled = !model.busy) { Text("Save a backup", color = K.ink) }
+            OutlinedButton(onClick = { open.launch(arrayOf("application/json", "application/octet-stream", "*/*")) }, enabled = !model.busy) {
+                Text("Restore…", color = K.ink)
+            }
+        }
+    }
+    ask?.let { which ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { ask = null },
+            title = { Text(if (which == "save") "Lock the backup?" else "This backup is locked") },
+            text = {
+                Column {
+                    Text(
+                        if (which == "save") "Type a password to lock it, or leave it empty. There's no way to open a locked backup without it."
+                        else "Type the password it was saved with. Restoring replaces everything on this phone.",
+                        style = SmallStyle,
+                    )
+                    OutlinedTextField(
+                        pw, { pw = it }, singleLine = true, label = { Text("Password") },
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    ask = null
+                    if (which == "save") save.launch("annales-backup-${java.time.LocalDate.now()}.json")
+                    else pending?.let { u -> model.restoreFrom(u, pw) { }; pw = "" }
+                }) { Text(if (which == "save") "Choose where" else "Restore", color = K.acc, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = null }) { Text("Cancel", color = K.muted) } },
+            containerColor = K.surface,
+        )
+    }
 }

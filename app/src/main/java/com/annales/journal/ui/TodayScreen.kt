@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -91,6 +92,7 @@ fun DayPage(
     val day = model.day(date)
     val today = date == LocalDate.now()
     var sel by remember(date) { mutableIntStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(date) { model.fillIn(date) }
     if (sel > day.stamps.lastIndex) sel = maxOf(0, day.stamps.lastIndex)
     val st = day.stamps.getOrNull(sel)
 
@@ -346,11 +348,33 @@ private fun PostmarkCard(model: AnnalesModel, day: Day) {
             model.tripOn(day.date)?.let { "Trip" } ?: "Profile")
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
         Row1("☾", "${Moon.name(day.date)} · ${(Moon.lit(day.date) * 100).roundToInt()}% lit", "Calculated, exact", "Caelum")
+        val x = day.extras
+        Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
+        val code = x["wx.code"]?.toIntOrNull()
+        if (code != null) {
+            val agree = mapOf("agree" to "models agree", "roughly" to "models roughly aligned", "diverge" to "models diverge")[x["wx.agree"]] ?: ""
+            Row1(SKY_GLYPH[com.annales.journal.data.Siblings.describe(code).second] ?: "☁",
+                "${com.annales.journal.data.Siblings.describe(code).first} · ${x["wx.hi"]}° / ${x["wx.lo"]}°",
+                "${x["wx.models"]} models · $agree", "Consensus")
+        } else Row1("☁", "Weather", if (java.time.temporal.ChronoUnit.DAYS.between(day.date, LocalDate.now()) > 90) "Only kept for the last three months" else "Needs a connection to fetch", "Consensus", faded = true)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
+        if (x["music.track"] != null) Row1("♪", "${x["music.track"]}${x["music.artist"]?.let { " · $it" } ?: ""}",
+            "${x["music.minutes"] ?: "0"} min listened", "Fidelis")
+        else if (x["music.minutes"] != null) Row1("♪", "${x["music.minutes"]} min of music", "no track played through yet", "Fidelis")
+        else Row1("♪", "Top track", sourceNote(model, com.annales.journal.data.Siblings.FIDELIS), "Fidelis", faded = true)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
+        if (x["money.spent"] != null) Row1("¤", "${x["money.spent"]} spent", x["money.safe"]?.let { "safe to spend $it a day" } ?: "safe to spend wasn't noted that day", "Kalendae")
+        else Row1("¤", "Spent vs safe-to-spend", sourceNote(model, com.annales.journal.data.Siblings.KALENDAE), "Kalendae", faded = true)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
+        if (x["augur.tone"] != null) Row1("✶", x["augur.tone"]!!, x["augur.agree"]?.let { "$it systems agree" } ?: "where the systems agree", "Augur")
+        else Row1("✶", "The day's tone", sourceNote(model, com.annales.journal.data.Siblings.AUGUR), "Augur", faded = true)
     }
 }
 
 @Composable
-private fun Row1(ic: String, b: String, s: String, src: String) = Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean = false) = Row(
+    Modifier.fillMaxWidth().padding(vertical = 10.dp).alpha(if (faded) .55f else 1f), verticalAlignment = Alignment.CenterVertically,
+) {
     Text(ic, style = TextStyle(fontSize = 18.sp, color = K.acc), modifier = Modifier.width(30.dp))
     Column(Modifier.weight(1f)) {
         Text(b, style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold))
@@ -425,3 +449,9 @@ private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, 
         }
     }
 }
+
+private val SKY_GLYPH = com.annales.journal.render.SkyStamp.Weather.entries.associateWith { it.glyph }
+
+/** Why a sibling's row is empty: not installed, or installed but not sharing yet. */
+private fun sourceNote(model: AnnalesModel, app: com.annales.journal.data.Siblings.App) =
+    if (!model.installed(app)) "${app.name.substringBefore(" ")} isn't installed" else "Nothing shared for this day yet"
