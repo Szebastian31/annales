@@ -50,7 +50,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 private enum class Tab(val label: String, val glyph: String) {
-    TODAY("Today", "◎"), JOURNAL("Journal", "▦"), COLLECTIONS("Collections", "❖"), PROFILE("Profile", "◯")
+    TODAY("Today", "◎"), JOURNAL("Journal", "▦"), COLLECTIONS("Collections", "❖"), INSIGHTS("Insights", "∿"), PROFILE("Profile", "◯")
 }
 
 /** What the full-screen viewer is showing: a run of stamps, where to start, and the collection it came from. */
@@ -118,6 +118,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         model, onOpen = { openColl = it.id },
                         onNew = { type -> editing = Collection(0, type, "", from = LocalDate.now(), to = LocalDate.now().plusDays(2)) },
                     )
+                    tab == Tab.INSIGHTS -> InsightsScreen(model)
                     else -> ProfileScreen(model)
                 }
             }
@@ -164,7 +165,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(t.glyph, style = TextStyle(fontSize = 18.sp, color = if (on) K.acc else K.muted))
-                Text(t.label, style = TextStyle(fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.acc else K.muted))
+                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
         }

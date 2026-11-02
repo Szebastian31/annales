@@ -55,3 +55,16 @@ class Settings(context: Context) {
         get() = p.getString("since", "") ?: ""
         set(v) = p.edit().putString("since", v).apply()
 }
+
+/** The tags you can put on a day, as in Apple's State of Mind: what shaped it, and how it felt. */
+object Tags {
+    val factors = listOf("Community", "Current events", "Dating", "Education", "Family", "Fitness", "Friends", "Health", "Hobbies",
+        "Identity", "Money", "Partner", "Self-care", "Spirituality", "Tasks", "Travel", "Weather", "Work")
+    private val neg = listOf("Angry", "Anxious", "Ashamed", "Disappointed", "Discouraged", "Drained", "Frustrated", "Guilty", "Hopeless",
+        "Irritated", "Jealous", "Lonely", "Overwhelmed", "Sad", "Scared", "Stressed", "Worried")
+    private val mid = listOf("Calm", "Content", "Indifferent", "Peaceful", "Satisfied", "Thoughtful", "Tired", "Drained", "Hopeful", "Relieved")
+    private val pos = listOf("Amazed", "Amused", "Brave", "Calm", "Confident", "Content", "Excited", "Grateful", "Happy", "Hopeful",
+        "Joyful", "Passionate", "Peaceful", "Proud", "Relieved", "Satisfied", "Surprised")
+    /** The feelings that fit a mood: unpleasant ones below Neutral, pleasant ones above. */
+    fun feelsFor(mood: Int) = when { mood <= 2 -> neg; mood == 3 -> mid; else -> pos }
+}

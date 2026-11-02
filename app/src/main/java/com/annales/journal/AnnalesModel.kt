@@ -67,6 +67,14 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
 
     fun setMood(date: LocalDate, mood: Int) = put(day(date).copy(mood = mood))
 
+    fun toggleFactor(date: LocalDate, f: String) = day(date).let { d ->
+        put(d.copy(factors = if (f in d.factors) d.factors - f else d.factors + f))
+    }
+
+    fun toggleFeel(date: LocalDate, f: String) = day(date).let { d ->
+        put(d.copy(feels = if (f in d.feels) d.feels - f else d.feels + f))
+    }
+
     /** Saves the cropped photo and its perforated draft. */
     fun addStamp(date: LocalDate, cropped: Bitmap) {
         val d = day(date)

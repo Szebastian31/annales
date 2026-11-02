@@ -61,6 +61,7 @@ fun DayPage(
         Stamps(model, day, onAdd, onOpen)
         Spacer(Modifier.height(18.dp))
         MoodHorizon(day.mood, enabled = true, onMood = { model.setMood(date, it) })
+        if (day.mood != null) DayTags(model, day)
         Text(
             "${prettyOffice(day.office.ifBlank { model.postmarkFor(date).first })} · №${date.dayOfYear} · " +
                 if (day.sealed) "sealed" else "not sealed yet",
@@ -171,5 +172,23 @@ fun InkChip(ink: Ink, selected: Boolean, onClick: () -> Unit) {
         Box(Modifier.size(12.dp).background(Color(ink.argb), CircleShape))
         Spacer(Modifier.size(6.dp))
         Text(ink.label, color = K.ink, fontSize = 13.sp)
+    }
+}
+
+/** What shaped the day and how it felt. Feelings follow the mood; ones you tagged under another mood stay visible. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun DayTags(model: AnnalesModel, day: Day) {
+    val mood = day.mood ?: return
+    val feels = (com.annales.journal.data.Tags.feelsFor(mood) + day.feels).distinct()
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Text("WHAT SHAPED IT", style = KickerStyle, modifier = Modifier.padding(start = 6.dp, bottom = 6.dp))
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            com.annales.journal.data.Tags.factors.forEach { f -> Chip(f, f in day.factors) { model.toggleFactor(day.date, f) } }
+        }
+        Text("HOW IT FELT", style = KickerStyle, modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp))
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            feels.forEach { f -> Chip(f, f in day.feels) { model.toggleFeel(day.date, f) } }
+        }
     }
 }

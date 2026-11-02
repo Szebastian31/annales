@@ -17,6 +17,8 @@ data class Day(
     val sealed: Boolean = false,
     val sealedAt: Long = 0L,
     val office: String = "",
+    val factors: List<String> = emptyList(),
+    val feels: List<String> = emptyList(),
 ) {
     val canAdd get() = !sealed && stamps.size < MAX_STAMPS
     companion object { const val MAX_STAMPS = 3 }
@@ -43,7 +45,7 @@ class JournalStore(context: Context) {
     @Synchronized
     fun save(days: Map<LocalDate, Day>) {
         val arr = JSONArray()
-        days.values.sortedBy { it.date }.filter { it.stamps.isNotEmpty() || it.mood != null }.forEach { arr.put(writeDay(it)) }
+        days.values.sortedBy { it.date }.filter { it.stamps.isNotEmpty() || it.mood != null || it.factors.isNotEmpty() || it.feels.isNotEmpty() }.forEach { arr.put(writeDay(it)) }
         val tmp = File(root, "journal.json.tmp")
         tmp.writeText(JSONObject().put("version", 1).put("days", arr).toString())
         tmp.renameTo(file)
@@ -66,6 +68,8 @@ class JournalStore(context: Context) {
             sealed = o.optBoolean("sealed"),
             sealedAt = o.optLong("sealedAt"),
             office = o.optString("office"),
+            factors = o.optJSONArray("factors").strings(),
+            feels = o.optJSONArray("feels").strings(),
         )
     }
 
@@ -76,5 +80,9 @@ class JournalStore(context: Context) {
         put("sealed", d.sealed)
         put("sealedAt", d.sealedAt)
         put("office", d.office)
+        put("factors", JSONArray(d.factors))
+        put("feels", JSONArray(d.feels))
     }
 }
+
+private fun JSONArray?.strings(): List<String> = if (this == null) emptyList() else (0 until length()).map { getString(it) }
