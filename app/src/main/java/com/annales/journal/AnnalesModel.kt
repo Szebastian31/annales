@@ -294,6 +294,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
 
     /** Which sibling apps are installed, for Profile. */
     fun installed(app: com.annales.journal.data.Siblings.App) = com.annales.journal.data.Siblings.installed(getApplication(), app)
+    fun canShare(app: com.annales.journal.data.Siblings.App) = com.annales.journal.data.Siblings.canShare(getApplication(), app)
 
     /** Has this app ever shared anything with Annales? */
     fun hasShared(prefix: String) = days.values.any { d -> d.extras.keys.any { it.startsWith(prefix) } }

@@ -100,7 +100,7 @@ fun CollectionsScreen(model: AnnalesModel, onOpen: (Collection) -> Unit, onNew: 
 @Composable
 fun Chip(label: String, on: Boolean, onClick: () -> Unit) = Text(
     label,
-    style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.onAcc else K.ink),
+    style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, color = if (on) K.onAcc else K.ink),
     modifier = Modifier.background(if (on) K.acc else K.surface, RoundedCornerShape(99.dp)).clickable(onClick = onClick)
         .padding(horizontal = 12.dp, vertical = 7.dp),
 )
@@ -121,7 +121,7 @@ private fun CollCard(model: AnnalesModel, c: Collection, onClick: () -> Unit) {
         Spacer(Modifier.size(14.dp))
         Column(Modifier.weight(1f)) {
             TypeTag(c)
-            Text(c.name, style = TextStyle(fontFamily = K.serif, fontSize = 20.sp, color = K.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(c.name, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 20.sp, color = K.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(l1, style = SmallStyle); Text(l2, style = SmallStyle)
         }
     }
@@ -143,7 +143,7 @@ fun Ghost(type: CollType, label: String) = Box(
     contentAlignment = Alignment.Center,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(type.glyph, style = TextStyle(fontSize = 20.sp, color = K.muted))
+        Text(type.glyph, style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 20.sp, color = K.muted))
         Text(label, style = SmallStyle.copy(fontSize = 10.sp))
     }
 }
@@ -177,7 +177,7 @@ fun CollectionScreen(
             Spacer(Modifier.size(14.dp))
             Column(Modifier.weight(1f)) {
                 TypeTag(c, withInk = true)
-                Text(c.name, style = TextStyle(fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
+                Text(c.name, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
                 Text(l1, style = SmallStyle); Text(l2, style = SmallStyle)
             }
         }

@@ -82,8 +82,8 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onCancel) { Text("Cancel", color = Color.White) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Drag · pinch to resize", style = TextStyle(fontSize = 11.sp, color = Color(0xB3FFFFFF)))
-                Text("Frame the memory", style = TextStyle(fontFamily = K.serif, fontSize = 18.sp, color = Color.White))
+                Text("Drag · pinch to resize", style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, color = Color(0xB3FFFFFF)))
+                Text("Frame the memory", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 18.sp, color = Color.White))
             }
             TextButton(onClick = {
                 val f = frame()
@@ -164,7 +164,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
 @Composable
 private fun CropChip(text: String, on: Boolean, onClick: () -> Unit) {
     Text(
-        text, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) Color(0xFF1F1A16) else Color.White),
+        text, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, color = if (on) Color(0xFF1F1A16) else Color.White),
         modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF))
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
     )

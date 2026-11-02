@@ -48,12 +48,12 @@ enum class Look(
     val label: String, val about: String, val bg: Long, val surface: Long, val page: Long, val ink: Long, val muted: Long,
     val line: Long, val acc: Long, val accSoft: Long, val acc2: Long, val onAcc: Long = 0xFFFFFFFF, val dark: Boolean = false,
 ) {
-    KRAFT("Kraft", "brown envelope", 0xFFCDAE84, 0xFFECDCBF, 0xFFDCC39C, 0xFF3B2A1A, 0xFF7A5F42, 0x2E462D14, 0xFF8F3B22, 0xFFE3C9A6, 0xFF3D5A40),
-    AIRMAIL("Airmail", "par avion", 0xFFF3F0E8, 0xFFFFFDF8, 0xFFFAF6EE, 0xFF1F2A44, 0xFF7B8296, 0xFFE2DDD2, 0xFFC8323C, 0xFFF6DCDC, 0xFF23498A),
-    GALLERY("Gallery", "white wall", 0xFFFFFFFF, 0xFFF5F5F3, 0xFFF1F1EF, 0xFF111111, 0xFF8C8C8C, 0xFFE8E8E8, 0xFFE0482D, 0xFFFBE3DD, 0xFF111111),
-    HERBARIUM("Herbarium", "pressed sage", 0xFFDDE2CF, 0xFFF4F3E8, 0xFFEBE9D8, 0xFF2C3326, 0xFF6F7864, 0xFFCCD1BC, 0xFF667A35, 0xFFE1E6C9, 0xFF8A5A6B),
-    RIVIERA("Riviera", "sea and coral", 0xFFD9EAEE, 0xFFFDFAF3, 0xFFF7F0E3, 0xFF1D3945, 0xFF6A8690, 0xFFCADDE1, 0xFFE0694A, 0xFFFADFD5, 0xFF2F7A8A),
-    INK("Ink", "for evenings", 0xFF1D2027, 0xFF252931, 0xFF2A2E37, 0xFFE7E3DA, 0xFF979BA5, 0xFF343944, 0xFFCFA276, 0xFF3A352F, 0xFF93A7C2, onAcc = 0xFF1D2027, dark = true),
+    KRAFT("Kraft", "brown envelope", 0xFFCDAE84, 0xFFECDCBF, 0xFFDCC39C, 0xFF3B2A1A, 0xFF5E4630, 0x2E462D14, 0xFF8F3B22, 0xFFE3C9A6, 0xFF3D5A40),
+    AIRMAIL("Airmail", "par avion", 0xFFF3F0E8, 0xFFFFFDF8, 0xFFFAF6EE, 0xFF1F2A44, 0xFF5A6177, 0xFFE2DDD2, 0xFFC8323C, 0xFFF6DCDC, 0xFF23498A),
+    GALLERY("Gallery", "white wall", 0xFFFFFFFF, 0xFFF5F5F3, 0xFFF1F1EF, 0xFF111111, 0xFF666666, 0xFFE8E8E8, 0xFFE0482D, 0xFFFBE3DD, 0xFF111111),
+    HERBARIUM("Herbarium", "pressed sage", 0xFFDDE2CF, 0xFFF4F3E8, 0xFFEBE9D8, 0xFF2C3326, 0xFF535C49, 0xFFCCD1BC, 0xFF667A35, 0xFFE1E6C9, 0xFF8A5A6B),
+    RIVIERA("Riviera", "sea and coral", 0xFFD9EAEE, 0xFFFDFAF3, 0xFFF7F0E3, 0xFF1D3945, 0xFF4C6872, 0xFFCADDE1, 0xFFE0694A, 0xFFFADFD5, 0xFF2F7A8A),
+    INK("Ink", "for evenings", 0xFF1D2027, 0xFF252931, 0xFF2A2E37, 0xFFE7E3DA, 0xFFB4B8C1, 0xFF343944, 0xFFCFA276, 0xFF3A352F, 0xFF93A7C2, onAcc = 0xFF1D2027, dark = true),
 }
 
 /** The current look's colours. Reading them inside a composable redraws it when the look changes. */
@@ -89,10 +89,10 @@ fun title(plain: String, em: String): AnnotatedString = buildAnnotatedString {
     withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = K.acc)) { append(em) }
 }
 
-val TitleStyle get() = TextStyle(fontFamily = K.serif, fontSize = 30.sp, lineHeight = 34.sp, color = K.ink)
+val TitleStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 30.sp, lineHeight = 34.sp, color = K.ink)
 val KickerStyle get() = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, color = K.muted)
-val BodyStyle get() = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, color = K.ink)
-val SmallStyle get() = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, color = K.muted)
+val BodyStyle get() = TextStyle(fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp, color = K.ink)
+val SmallStyle get() = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.5.sp, lineHeight = 17.sp, color = K.muted)
 
 @Composable
 fun Header(kicker: String, title: AnnotatedString, modifier: Modifier = Modifier) {

@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.6.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
+> **Pre-release (0.6.1).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
 
 ---
 

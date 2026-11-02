@@ -157,7 +157,7 @@ private fun YearRing(date: LocalDate) {
             drawArc(K.line, 0f, 360f, false, tl, sz, style = Stroke(sw))
             drawArc(K.acc, -90f, 360f * date.dayOfYear / total, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
         }
-        Text("${date.dayOfYear}", style = TextStyle(fontFamily = K.serif, fontSize = 18.sp, color = K.acc))
+        Text("${date.dayOfYear}", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 18.sp, color = K.acc))
         Text("OF $total", style = KickerStyle.copy(fontSize = 7.5.sp), modifier = Modifier.align(Alignment.BottomCenter).offset(y = 12.dp))
     }
 }
@@ -182,7 +182,7 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("＋", style = TextStyle(fontFamily = K.serif, fontSize = 30.sp, color = K.ink))
+                    Text("＋", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 30.sp, color = K.ink))
                     Text("Add a stamp", style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                     Text("a photo, or the day's sky", style = SmallStyle)
                 }
@@ -192,7 +192,7 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
         val t = st?.title?.ifBlank { null } ?: if (day.sealed) day.line.ifBlank { null } else null
         Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 12.dp).width(190.dp)) {
             Text(cap.uppercase(), style = KickerStyle.copy(fontSize = 9.5.sp, letterSpacing = 1.3.sp))
-            if (t != null) Text(t, style = TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.ink),
+            if (t != null) Text(t, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.ink),
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
         }
         Row(
@@ -239,7 +239,7 @@ private fun Strip(model: AnnalesModel, day: Day, sel: Int, onSelect: (Int) -> Un
             Modifier.size(62.dp, 72.dp).clickable(onClick = onAdd).dashed(K.line), contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("＋", style = TextStyle(fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
+                Text("＋", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
                 Text(if (n > 0) "Add" else "Add a stamp", style = SmallStyle.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
             }
         }
@@ -300,14 +300,14 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         PROMPTS.subList(start, start + 3).forEach { p ->
             Text(
-                p, style = TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.muted),
+                p, style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 13.sp, color = K.muted),
                 modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(K.surface).border(1.dp, K.line, RoundedCornerShape(99.dp))
                     .clickable { hint = p }.padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
     }
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(16.dp)) {
-        val style = TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 18.sp, lineHeight = 24.sp, color = K.ink)
+        val style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 18.sp, lineHeight = 24.sp, color = K.ink)
         BasicTextField(
             text, { if (it.length <= 120) { text = it; model.setLine(day.date, it) } },
             textStyle = style, cursorBrush = SolidColor(K.acc), minLines = 2,
@@ -375,7 +375,7 @@ private fun PostmarkCard(model: AnnalesModel, day: Day) {
 private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean = false) = Row(
     Modifier.fillMaxWidth().padding(vertical = 10.dp).alpha(if (faded) .55f else 1f), verticalAlignment = Alignment.CenterVertically,
 ) {
-    Text(ic, style = TextStyle(fontSize = 18.sp, color = K.acc), modifier = Modifier.width(30.dp))
+    Text(ic, style = TextStyle(fontWeight = FontWeight.Medium, fontSize = 18.sp, color = K.acc), modifier = Modifier.width(30.dp))
     Column(Modifier.weight(1f)) {
         Text(b, style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold))
         Text(s, style = SmallStyle.copy(fontSize = 11.sp))
@@ -443,7 +443,7 @@ private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, 
             Text((if (years == 1) "A year ago" else "$years years ago") + (past.mood?.let { " · ${com.annales.journal.data.Moods.names[it]}" } ?: ""), style = SmallStyle)
             Text(
                 s.title.ifBlank { past.line.ifBlank { past.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH)) } },
-                style = TextStyle(fontFamily = K.serif, fontSize = 18.sp, color = K.ink), maxLines = 2,
+                style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 18.sp, color = K.ink), maxLines = 2,
             )
             if (past.stamps.size > 1) Text("${past.stamps.size} stamps that day", style = SmallStyle)
         }
@@ -454,4 +454,4 @@ private val SKY_GLYPH = com.annales.journal.render.SkyStamp.Weather.entries.asso
 
 /** Why a sibling's row is empty: not installed, or installed but not sharing yet. */
 private fun sourceNote(model: AnnalesModel, app: com.annales.journal.data.Siblings.App) =
-    if (!model.installed(app)) "${app.name.substringBefore(" ")} isn't installed" else "Nothing shared for this day yet"
+    when { !model.installed(app) -> "${app.name.substringBefore(" ")} isn't installed"; !model.canShare(app) -> "Update ${app.name.substringBefore(" ")} to share"; else -> "Nothing shared for this day yet" }

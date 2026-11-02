@@ -73,7 +73,7 @@ fun CollectionForm(model: AnnalesModel, start: Collection, onClose: () -> Unit, 
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("‹ Back", color = K.acc) }
             Spacer(Modifier.weight(1f))
-            Text(if (isNew) "New collection" else "Edit collection", style = TextStyle(fontFamily = K.serif, fontSize = 18.sp, color = K.ink))
+            Text(if (isNew) "New collection" else "Edit collection", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 18.sp, color = K.ink))
             Spacer(Modifier.weight(1f)); Spacer(Modifier.size(64.dp))
         }
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {

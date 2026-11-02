@@ -177,7 +177,7 @@ fun AnnalesApp(model: AnnalesModel) {
         model.message?.let { msg ->
             LaunchedEffect(msg) { delay(3200); model.message = null }
             Text(
-                msg, style = TextStyle(color = Color.White, fontSize = 14.sp),
+                msg, style = TextStyle(fontWeight = FontWeight.Medium, color = Color.White, fontSize = 14.sp),
                 modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 86.dp)
                     .background(Color(0xE61F1A16), RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 10.dp),
             )
@@ -198,7 +198,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 TabIcon(t, if (on) K.acc else K.muted)
-                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.acc else K.muted))
+                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
         }

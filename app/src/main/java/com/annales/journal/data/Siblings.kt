@@ -29,6 +29,10 @@ object Siblings {
     fun installed(context: Context, app: App) =
         runCatching { context.packageManager.getPackageInfo(app.pkg, 0); true }.getOrDefault(false)
 
+    /** True when the installed version has the sharing built in (its provider exists), whether or not it has shared yet. */
+    fun canShare(context: Context, app: App) =
+        runCatching { context.packageManager.resolveContentProvider("${app.pkg}.annales", 0) != null }.getOrDefault(false)
+
     /**
      * Asks a sibling for its summary of [date]: content://<package>.annales/day/2026-11-02, one row per key/value.
      * Returns an empty map when the app isn't installed, doesn't share yet, or had nothing that day.

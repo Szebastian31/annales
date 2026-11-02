@@ -79,10 +79,10 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 18.dp, bottom = 8.dp), verticalAlignment = Alignment.Bottom) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
-                Text("%02d".format(sealedN), style = TextStyle(fontFamily = K.serif, fontSize = 44.sp, lineHeight = 44.sp, color = K.ink))
+                Text("%02d".format(sealedN), style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 44.sp, lineHeight = 44.sp, color = K.ink))
                 Text("DAYS · ${ym.year}", style = KickerStyle.copy(fontSize = 9.sp), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
             }
-            Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, color = K.acc))
+            Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, color = K.acc))
         }
         Nav("‹", ym > first) { month = ym.minusMonths(1).toString() }
         Spacer(Modifier.size(6.dp))
@@ -148,7 +148,7 @@ private fun Cell(model: AnnalesModel, date: LocalDate, inMonth: Boolean, today: 
             val quiet = d != null && !d.sealed
             Text(
                 "${date.dayOfMonth}",
-                style = TextStyle(fontFamily = K.serif, fontSize = 14.sp, color = when { !inMonth || future -> K.line; quiet -> K.ink; else -> K.muted }),
+                style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 14.sp, color = when { !inMonth || future -> K.line; quiet -> K.ink; else -> K.muted }),
             )
             if (quiet && inMonth) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 9.dp).size(4.dp).background(K.muted, RoundedCornerShape(99.dp)))
         }
@@ -183,8 +183,8 @@ private fun Pages(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
                     .padding(start = 20.dp, end = 14.dp, top = 18.dp, bottom = 16.dp)
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
-                    Text(ROMAN[ym.monthValue - 1], style = TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 16.sp, color = K.acc),
+                    Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
+                    Text(ROMAN[ym.monthValue - 1], style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 16.sp, color = K.acc),
                         modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
                 }
                 Text("$n stamps over ${ss.size} days${if (quiet > 0) " · $quiet quiet" else ""}", style = SmallStyle, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
@@ -206,7 +206,7 @@ private fun Stack(model: AnnalesModel, d: Day) {
     if (!d.sealed || st == null) {
         Box(Modifier.size(56.dp, 68.dp).dashed(K.line), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${d.date.dayOfMonth}", style = TextStyle(fontFamily = K.serif, fontSize = 15.sp, color = K.ink.copy(alpha = .6f)))
+                Text("${d.date.dayOfMonth}", style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = K.serif, fontSize = 15.sp, color = K.ink.copy(alpha = .6f)))
                 Text("quiet day", style = SmallStyle.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold))
             }
         }
