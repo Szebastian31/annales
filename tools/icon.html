@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Annales icon</title>
+<!-- The Annales icon (The sealed day, Well-travelled kraft, carmine): a frosted-glass stamp with a sun on a curved horizon,
+     a black datestamp ring and carmine wavy cancellation lines, on the back of a creased kraft envelope with its flap folded down.
+     Drawn on Kalendae's 1024 grid with the family's glass and dusk tones.
+     tools/icon.sh renders it: ?mode=round for icons/ and older Android, ?mode=full for the Play Store,
+     ?mode=bg and ?mode=fg for the two adaptive icon layers (full bleed, stamp inside the safe zone). -->
+<style>html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}svg{display:block;width:100vw;height:100vh}</style>
+</head>
+<body>
+<script src="icon.js"></script>
+<script>document.body.innerHTML = annalesIcon(new URLSearchParams(location.search).get('mode') || 'round');</script>
+</body>
+</html>

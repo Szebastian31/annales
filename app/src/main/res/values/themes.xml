@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Kraft paper behind the first frame, so the app opens without a white flash. -->
+    <style name="Theme.Annales" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kraft</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+    <color name="kraft">#FFCDAE84</color>
+</resources>

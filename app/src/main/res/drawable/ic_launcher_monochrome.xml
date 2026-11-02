@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icon (Android 13+): the perforated stamp with a sun rising over its horizon, the datestamp ring and the wavy cancel,
+     on the same 1024 grid as tools/icon.html, shrunk into the adaptive icon's safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.0675" android:scaleY="0.0675" android:translateX="19.44" android:translateY="19.44">
+        <group android:pivotX="490" android:pivotY="485" android:scaleX="1.13" android:scaleY="1.13" android:translateX="22" android:translateY="27">
+            <group android:pivotX="490" android:pivotY="485" android:rotation="-6">
+                <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+                    android:pathData="M300,250 L311.7,250 A20,20 0 0,0 351.7,250 L375,250 A20,20 0 0,0 415,250 L438.3,250 A20,20 0 0,0 478.3,250 L501.7,250 A20,20 0 0,0 541.7,250 L565,250 A20,20 0 0,0 605,250 L628.3,250 A20,20 0 0,0 668.3,250 L680,250 L680,259.4 A20,20 0 0,0 680,299.4 L680,318.1 A20,20 0 0,0 680,358.1 L680,376.9 A20,20 0 0,0 680,416.9 L680,435.6 A20,20 0 0,0 680,475.6 L680,494.4 A20,20 0 0,0 680,534.4 L680,553.1 A20,20 0 0,0 680,593.1 L680,611.9 A20,20 0 0,0 680,651.9 L680,670.6 A20,20 0 0,0 680,710.6 L680,720 L668.3,720 A20,20 0 0,0 628.3,720 L605,720 A20,20 0 0,0 565,720 L541.7,720 A20,20 0 0,0 501.7,720 L478.3,720 A20,20 0 0,0 438.3,720 L415,720 A20,20 0 0,0 375,720 L351.7,720 A20,20 0 0,0 311.7,720 L300,720 L300,710.6 A20,20 0 0,0 300,670.6 L300,651.9 A20,20 0 0,0 300,611.9 L300,593.1 A20,20 0 0,0 300,553.1 L300,534.4 A20,20 0 0,0 300,494.4 L300,475.6 A20,20 0 0,0 300,435.6 L300,416.9 A20,20 0 0,0 300,376.9 L300,358.1 A20,20 0 0,0 300,318.1 L300,299.4 A20,20 0 0,0 300,259.4 Z M344,294 L636,294 L636,676 L344,676 Z" />
+                <path android:strokeColor="#FFFFFFFF" android:strokeWidth="26" android:strokeLineCap="round"
+                    android:pathData="M352,606 Q490,538 628,606" />
+                <group>
+                    <clip-path android:pathData="M344,294 L636,294 L636,576 Q490,508 344,576 Z" />
+                    <path android:fillColor="#FFFFFFFF"
+                        android:pathData="M424,520 A66,66 0 1,1 556,520 A66,66 0 1,1 424,520 Z" />
+                </group>
+            </group>
+            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="22"
+                android:pathData="M590,640 A130,130 0 1,1 850,640 A130,130 0 1,1 590,640 Z" />
+            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="14"
+                android:pathData="M626,640 A94,94 0 1,1 814,640 A94,94 0 1,1 626,640 Z" />
+            <group android:pivotX="300" android:pivotY="330" android:rotation="-16">
+                <path android:strokeColor="#FFFFFFFF" android:strokeWidth="22" android:strokeLineCap="round"
+                    android:pathData="M190,300 q31,-26 62,0 t62,0 t62,0 t62,0 M190,342 q31,-26 62,0 t62,0 t62,0 t62,0 M190,384 q31,-26 62,0 t62,0 t62,0 t62,0" />
+            </group>
+        </group>
+    </group>
+</vector>
