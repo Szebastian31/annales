@@ -20,6 +20,17 @@ object Moods {
     }
 
     fun color(mood: Int) = at(mood / 6f)
+
+    /** The step nearest a slider position 0..100. */
+    fun levelOf(v: Int) = Math.round(v / 100f * 6).coerceIn(0, 6)
+
+    /** The mood colour mixed with ink, so the name stays readable on any paper (the mockup mixes 55% mood, 45% ink). */
+    fun readable(mood: Int, ink: Int): Int {
+        val m = color(mood)
+        fun ch(c: Int, s: Int) = (c shr s) and 0xFF
+        fun mix(s: Int) = (ch(m, s) * .55f + ch(ink, s) * .45f).toInt()
+        return (0xFF shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
+    }
 }
 
 /** The postmark inks. Official is what the post office itself uses: black. */
@@ -54,6 +65,15 @@ class Settings(context: Context) {
     var look: String
         get() = p.getString("look", "KRAFT") ?: "KRAFT"
         set(v) = p.edit().putString("look", v).apply()
+    var name: String
+        get() = p.getString("name", "") ?: ""
+        set(v) = p.edit().putString("name", v).apply()
+    var keepOriginals: Boolean
+        get() = p.getBoolean("keepOriginals", true)
+        set(v) = p.edit().putBoolean("keepOriginals", v).apply()
+    var haptics: Boolean
+        get() = p.getBoolean("haptics", true)
+        set(v) = p.edit().putBoolean("haptics", v).apply()
     var since: String
         get() = p.getString("since", "") ?: ""
         set(v) = p.edit().putString("since", v).apply()

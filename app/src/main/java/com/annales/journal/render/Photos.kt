@@ -35,21 +35,30 @@ object Photos {
     fun writeJpeg(bitmap: Bitmap, file: File) = file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }
     fun writePng(bitmap: Bitmap, file: File) = file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
-    /** Adds a sealed stamp to an "Annales" album in Photos (Android 10+). Returns false where that isn't possible. */
-    fun saveToGallery(context: Context, png: File, name: String): Boolean {
-        if (Build.VERSION.SDK_INT < 29) return false
+    /**
+     * Puts a sealed stamp into an "Annales" album in Photos (Android 10+). If [existing] is the link from an earlier seal and
+     * that photo is still there, it's overwritten instead of adding a copy. Returns the photo's link, or null where that isn't possible.
+     */
+    fun saveToGallery(context: Context, png: File, name: String, existing: String = ""): String? {
+        if (Build.VERSION.SDK_INT < 29) return null
+        val resolver = context.contentResolver
+        if (existing.isNotBlank()) {
+            val ok = runCatching {
+                resolver.openOutputStream(Uri.parse(existing), "wt")?.use { out -> png.inputStream().use { it.copyTo(out) } } != null
+            }.getOrDefault(false)
+            if (ok) return existing // still there and ours: updated in place
+        }
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Annales")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return null
         return runCatching {
             resolver.openOutputStream(uri)?.use { out -> png.inputStream().use { it.copyTo(out) } }
             resolver.update(uri, ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
-            true
-        }.getOrElse { resolver.delete(uri, null, null); false }
+            uri.toString()
+        }.getOrElse { resolver.delete(uri, null, null); null }
     }
 }

@@ -144,3 +144,21 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         }
     }
 }
+
+/** The moon for the "filled in by your apps" card: phase name and how lit it is. */
+object Moon {
+    fun age(d: LocalDate): Double {
+        val jd = d.toEpochDay() + 2440587.5
+        var a = ((jd - 2451550.1) / 29.530588853) % 1.0
+        if (a < 0) a += 1
+        return a
+    }
+    fun name(d: LocalDate): String {
+        val a = age(d)
+        return when {
+            a < .03 || a > .97 -> "New moon"; a < .22 -> "Waxing crescent"; a < .28 -> "First quarter"; a < .47 -> "Waxing gibbous"
+            a < .53 -> "Full moon"; a < .72 -> "Waning gibbous"; a < .78 -> "Last quarter"; else -> "Waning crescent"
+        }
+    }
+    fun lit(d: LocalDate) = Insights.moonLight(d)
+}

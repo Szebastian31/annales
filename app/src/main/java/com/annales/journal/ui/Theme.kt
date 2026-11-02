@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -36,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
 import com.annales.journal.data.Moods
+import com.annales.journal.render.StampRenderer as SR
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -103,6 +107,8 @@ fun Header(kicker: String, title: AnnotatedString, modifier: Modifier = Modifier
 fun StampView(
     model: AnnalesModel, id: String, dayOfYear: Int, mood: Int?, width: Dp,
     modifier: Modifier = Modifier, rotation: Float = 0f,
+    /** Let the postmark spill past the paper, as on the envelope. Off for tiny thumbnails, where it would cover neighbours. */
+    bleed: Boolean = width >= 50.dp,
 ) {
     val img by produceState<ImageBitmap?>(null, id, model.version) {
         value = withContext(Dispatchers.IO) { model.stampImage(id) }
@@ -112,8 +118,19 @@ fun StampView(
         modifier
             .rotate(rotation)
             .size(width, width * 1.25f)
+            .then(if (bleed) Modifier else Modifier.clipToBounds())
     ) {
-        img?.let { Image(it, null, Modifier.aspectRatio(.8f), contentScale = ContentScale.Fit) }
+        img?.let { bmp ->
+            if (bmp.width > SR.W) {
+                // a stamp with its margin: draw it larger, so the paper fills this box and the cancels spill past it
+                Image(
+                    bmp, null, contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.align(Alignment.Center)
+                        .offset(x = width * ((SR.PR - SR.PL) / 2f / SR.W), y = width * 1.25f * ((SR.PB - SR.PT) / 2f / SR.H))
+                        .requiredSize(width * (SR.OW.toFloat() / SR.W), width * 1.25f * (SR.OH.toFloat() / SR.H)),
+                )
+            } else Image(bmp, null, Modifier.aspectRatio(.8f), contentScale = ContentScale.Fit) // saved before 0.5.0
+        }
         Text(
             "$dayOfYear",
             style = TextStyle(

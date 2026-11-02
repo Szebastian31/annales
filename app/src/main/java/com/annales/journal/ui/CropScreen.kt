@@ -3,6 +3,14 @@ package com.annales.journal.ui
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,11 +54,13 @@ import kotlin.math.roundToInt
 
 /** "Frame the memory": move and pinch the photo under a 4:5 stamp frame. */
 @Composable
-fun CropScreen(photo: Bitmap, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
+fun CropScreen(photo: Bitmap, cut: String = "classic", onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
     val image = remember(photo) { photo.asImageBitmap() }
     var box by remember { mutableStateOf(IntSize.Zero) }
     var scale by remember { mutableFloatStateOf(0f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    var filter by remember { mutableStateOf("natural") }
+    val tint = remember(filter) { androidx.compose.ui.graphics.ColorFilter.colorMatrix(androidx.compose.ui.graphics.ColorMatrix(com.annales.journal.render.Filters.matrix(filter))) }
 
     // the frame: 78% of the width, 4:5, centred (and never taller than the space)
     fun frame(): Rect {
@@ -80,7 +90,7 @@ fun CropScreen(photo: Bitmap, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
                 val w = (f.width / scale).roundToInt().coerceIn(1, photo.width - left)
                 val h = (f.height / scale).roundToInt().coerceIn(1, photo.height - top)
                 val part = Bitmap.createBitmap(photo, left, top, w, h)
-                onDone(Bitmap.createScaledBitmap(part, StampRenderer.W, StampRenderer.H, true))
+                onDone(com.annales.journal.render.Filters.apply(Bitmap.createScaledBitmap(part, StampRenderer.W, StampRenderer.H, true), filter))
             }) { Text("Done", color = Color(0xFFF2C9A0), fontWeight = FontWeight.Bold) }
         }
 
@@ -104,17 +114,44 @@ fun CropScreen(photo: Bitmap, onCancel: () -> Unit, onDone: (Bitmap) -> Unit) {
                     image,
                     dstOffset = IntOffset(offset.x.roundToInt(), offset.y.roundToInt()),
                     dstSize = IntSize((photo.width * scale).roundToInt(), (photo.height * scale).roundToInt()),
+                    colorFilter = tint,
                 )
                 val f = frame()
                 val hole = Path().apply { addRect(f) }
                 clipPath(hole, ClipOp.Difference) { drawRect(Color(0x99000000)) }
-                drawRect(Color.White, f.topLeft, f.size, style = Stroke(2.dp.toPx()))
+                // the edge it will get, so you can see what the perforation bites off
+                val edge = StampRenderer.shape(cut, 7, f.width, f.height).asComposePath()
+                translate(f.left, f.top) { drawPath(edge, Color.White, style = Stroke(1.5.dp.toPx())) }
             }
         }
-        Text(
-            "The edge gets its perforation when you're done.",
-            style = SmallStyle.copy(color = Color(0xB3FFFFFF)),
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp),
-        )
+        // Size: the same zoom as pinching, kept centred on the frame
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Size", style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xB3FFFFFF)))
+            val f = frame(); val lo = minScale(f)
+            androidx.compose.material3.Slider(
+                value = if (scale > 0f && lo > 0f) ((scale / lo - 1f) / 5f).coerceIn(0f, 1f) else 0f,
+                onValueChange = { t ->
+                    val s = lo * (1f + 5f * t)
+                    val c = f.center
+                    offset = clamp(f, s, c - (c - offset) * (s / scale))
+                    scale = s
+                },
+                colors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Color(0xFFF2C9A0), activeTrackColor = Color(0xFFF2C9A0)),
+                modifier = Modifier.weight(1f).padding(start = 12.dp),
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            com.annales.journal.render.Filters.all.forEach { (k, n) ->
+                val on = k == filter
+                Text(
+                    n, style = TextStyle(fontSize = 13.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) Color(0xFF1F1A16) else Color.White),
+                    modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (on) Color(0xFFF2C9A0) else Color(0x26FFFFFF))
+                        .clickable { filter = k }.padding(horizontal = 14.dp, vertical = 8.dp),
+                )
+            }
+        }
     }
 }

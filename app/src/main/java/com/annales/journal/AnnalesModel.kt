@@ -17,6 +17,7 @@ import com.annales.journal.data.CollectionStore
 import com.annales.journal.data.Day
 import com.annales.journal.data.Ink
 import com.annales.journal.data.JournalStore
+import com.annales.journal.data.Moods
 import com.annales.journal.data.Places
 import com.annales.journal.data.Settings
 import com.annales.journal.data.Stamp
@@ -49,6 +50,11 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     var cut by mutableStateOf(settings.cut); private set
     var saveToPhotos by mutableStateOf(settings.saveToPhotos); private set
     var reminder by mutableStateOf(settings.reminder); private set
+    var name by mutableStateOf(settings.name); private set
+    var keepOriginals by mutableStateOf(settings.keepOriginals); private set
+    var haptics by mutableStateOf(settings.haptics); private set
+    /** Bumped on each seal, so the screen can play the thunk. */
+    var sealedTick by mutableIntStateOf(0); private set
 
     init {
         if (settings.since.isEmpty()) settings.since = LocalDate.now().toString()
@@ -66,32 +72,51 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { store.save(snapshot) }
     }
 
-    fun setMood(date: LocalDate, mood: Int) = put(day(date).copy(mood = mood))
+    /** Any change after sealing marks the day, so the Seal button offers "Save & re-seal". */
+    private fun edit(date: LocalDate, change: (Day) -> Day) = day(date).let { d -> put(change(d).copy(dirty = d.sealed)) }
 
-    fun toggleFactor(date: LocalDate, f: String) = day(date).let { d ->
-        put(d.copy(factors = if (f in d.factors) d.factors - f else d.factors + f))
+    fun setMood(date: LocalDate, mood: Int) = setMoodV(date, mood * 100 / 6)
+
+    /** Sets the slider position. Moving into a different group of feelings (unpleasant, neutral, pleasant) clears the old ones. */
+    fun setMoodV(date: LocalDate, v: Int) = edit(date) { d ->
+        val lv = Moods.levelOf(v)
+        val keep = d.mood == null || com.annales.journal.data.Tags.feelsFor(d.mood) === com.annales.journal.data.Tags.feelsFor(lv)
+        d.copy(mood = lv, moodV = v, feels = if (keep) d.feels else emptyList())
     }
 
-    fun toggleFeel(date: LocalDate, f: String) = day(date).let { d ->
-        put(d.copy(feels = if (f in d.feels) d.feels - f else d.feels + f))
-    }
+    fun toggleFactor(date: LocalDate, f: String) = edit(date) { d -> d.copy(factors = if (f in d.factors) d.factors - f else d.factors + f) }
 
-    /** Saves the cropped photo and its perforated draft. */
-    fun addStamp(date: LocalDate, cropped: Bitmap) {
+    fun toggleFeel(date: LocalDate, f: String) = edit(date) { d -> d.copy(feels = if (f in d.feels) d.feels - f else d.feels + f) }
+
+    fun setLine(date: LocalDate, text: String) = edit(date) { it.copy(line = text.take(120)) }
+
+    /** This day's ink, falling back to a trip's ink, then the default in Profile. */
+    fun inkOn(date: LocalDate): Ink = day(date).ink?.let { runCatching { Ink.valueOf(it) }.getOrNull() } ?: postmarkFor(date).third
+
+    fun setDayInk(date: LocalDate, v: Ink) = edit(date) { it.copy(ink = v.name) }
+
+    /** Saves the cropped photo and its perforated draft; [replace] swaps an existing stamp's picture instead of adding one. */
+    fun addStamp(date: LocalDate, cropped: Bitmap, replace: Stamp? = null, original: Bitmap? = null) {
         val d = day(date)
-        if (!d.canAdd) return
-        val s = Stamp(UUID.randomUUID().toString().take(12))
+        if (replace == null && !d.canAdd) return
+        val s = replace ?: Stamp(UUID.randomUUID().toString().take(12))
         work({
             Photos.writeJpeg(cropped, store.photoFile(s.id))
+            if (original != null && keepOriginals) Photos.writeJpeg(original, store.originalFile(s.id)) else store.originalFile(s.id).delete() // a drawn sky has nothing to re-crop
             val draft = StampRenderer.render(cropped, cut, null, s.id.hashCode())
             Photos.writePng(draft, store.stampFile(s.id))
-        }, done = { put(day(date).let { it.copy(stamps = it.stamps + s) }); version++ })
+        }, done = {
+            edit(date) { it.copy(stamps = if (replace != null) it.stamps else it.stamps + s) }
+            version++
+        })
     }
 
+    /** The full photo a stamp was cut from, for re-cropping. */
+    fun original(s: Stamp): Bitmap? = BitmapFactory.decodeFile(store.originalFile(s.id).path)
+    fun hasOriginal(s: Stamp) = store.originalFile(s.id).exists()
+
     fun removeStamp(date: LocalDate, s: Stamp) {
-        val d = day(date)
-        if (d.sealed) return
-        put(d.copy(stamps = d.stamps.filterNot { it.id == s.id }))
+        edit(date) { d -> d.copy(stamps = d.stamps.filterNot { it.id == s.id }) }
         if (collections.any { s.id in it.ids || it.cover == s.id })
             putCollections(collections.map { it.copy(ids = it.ids - s.id, cover = it.cover.takeIf { c -> c != s.id }) })
         viewModelScope.launch(Dispatchers.IO) { store.delete(s) }
@@ -102,13 +127,21 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         put(d.copy(stamps = d.stamps.map { if (it.id == s.id) s else it }))
     }
 
-    /** Presses the postmark on every stamp of the day, and puts each one into Photos. */
+    /**
+     * Presses the postmark on every stamp of the day and puts each one into Photos. Re-sealing an edited day keeps the
+     * postmark it was first given (office, date and hour: what actually happened); only the ink and the stamps can change.
+     */
     fun seal(date: LocalDate) {
         val d = day(date)
-        if (d.sealed || d.stamps.isEmpty()) return
-        val hour = LocalTime.now().hour
-        val (mark, bottom, sealInk) = postmarkFor(date)
-        var saved = 0
+        if (d.stamps.isEmpty() || d.mood == null || (d.sealed && !d.dirty)) return
+        val first = !d.sealed
+        val hour = if (first) LocalTime.now().hour
+            else java.time.Instant.ofEpochMilli(d.sealedAt).atZone(java.time.ZoneId.systemDefault()).hour
+        val (pmMark, pmBottom, _) = postmarkFor(date)
+        val mark = if (first) pmMark else d.office.ifBlank { pmMark }
+        val bottom = if (first) pmBottom else d.bottom.ifBlank { pmBottom }
+        val sealInk = inkOn(date)
+        val links = mutableMapOf<String, String>()
         work({
             d.stamps.forEach { s ->
                 val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
@@ -116,14 +149,22 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
                 val png = store.stampFile(s.id)
                 Photos.writePng(StampRenderer.render(photo, cut, seal, s.id.hashCode()), png)
                 photo.recycle()
-                if (saveToPhotos && Photos.saveToGallery(getApplication<Application>(), png, "annales-$date-${s.id.take(4)}")) saved++
+                if (saveToPhotos) Photos.saveToGallery(getApplication<Application>(), png, "annales-$date-${s.id.take(4)}", s.gallery)
+                    ?.let { links[s.id] = it }
             }
         }, done = {
-            put(day(date).copy(sealed = true, sealedAt = System.currentTimeMillis(), office = mark))
+            val now = day(date)
+            put(now.copy(
+                sealed = true, dirty = false, sealedAt = if (first) System.currentTimeMillis() else now.sealedAt,
+                office = mark, bottom = bottom, ink = sealInk.name,
+                stamps = now.stamps.map { s -> links[s.id]?.let { s.copy(gallery = it) } ?: s },
+            ))
             version++
+            val n = d.stamps.size
+            sealedTick++
             message = when {
-                !saveToPhotos -> "Sealed."
-                saved == d.stamps.size -> "Sealed, and saved to Photos › Annales."
+                !saveToPhotos -> if (first) "Sealed." else "Re-sealed."
+                links.size == n -> "$n stamp${if (n > 1) "s" else ""} ${if (first) "saved to" else "updated in"} Photos › Annales"
                 else -> "Sealed. Some stamps couldn't go to Photos on this phone."
             }
         })
@@ -192,10 +233,10 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     fun changeLook(v: com.annales.journal.ui.Look) { com.annales.journal.ui.K.look = v; settings.look = v.name }
 
     /** A drawn stamp of the day's sky instead of a photo: the weather you pick, that night's moon, hills in the mood colour. */
-    fun addSky(date: LocalDate, wx: com.annales.journal.render.SkyStamp.Weather) {
+    fun addSky(date: LocalDate, wx: com.annales.journal.render.SkyStamp.Weather, replace: Stamp? = null) {
         val mood = day(date).mood?.let { com.annales.journal.data.Moods.color(it) }
         val art = com.annales.journal.render.SkyStamp.draw(date, wx, mood, (date.toEpochDay() * 31 + day(date).stamps.size).toInt())
-        addStamp(date, art)
+        addStamp(date, art, replace)
     }
 
     /** The same date in earlier years, newest first, for "On this day". Only days with stamps. */
@@ -206,6 +247,9 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     fun changeOffice(v: String) { office = v; settings.office = v }
     fun changePostcode(v: String) { postcode = v; settings.postcode = v }
     fun changeInk(v: Ink) { ink = v; settings.ink = v }
+    fun changeName(v: String) { name = v.take(40); settings.name = name }
+    fun changeKeepOriginals(v: Boolean) { keepOriginals = v; settings.keepOriginals = v }
+    fun changeHaptics(v: Boolean) { haptics = v; settings.haptics = v }
     fun changeSaveToPhotos(v: Boolean) { saveToPhotos = v; settings.saveToPhotos = v }
     fun changeReminder(v: Boolean) { reminder = v; settings.reminder = v; com.annales.journal.reminder.Reminder.schedule(getApplication<Application>()) }
 

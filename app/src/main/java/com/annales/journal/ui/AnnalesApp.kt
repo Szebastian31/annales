@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -65,7 +66,8 @@ fun AnnalesApp(model: AnnalesModel) {
     var openColl by remember { mutableStateOf<Long?>(null) }
     var editing by remember { mutableStateOf<Collection?>(null) }       // id 0 = new
     var viewing by remember { mutableStateOf<Viewing?>(null) }
-    var cropping by remember { mutableStateOf<Pair<LocalDate, Bitmap>?>(null) }
+    var cropping by remember { mutableStateOf<Cropping?>(null) }
+    var replacing by remember { mutableStateOf<Stamp?>(null) }        // the stamp a picked photo will replace
     var pickFor by remember { mutableStateOf(LocalDate.now()) }
     var adding by remember { mutableStateOf<LocalDate?>(null) }       // the "photo or sky?" sheet is open for this day
 
@@ -74,12 +76,20 @@ fun AnnalesApp(model: AnnalesModel) {
         val date = pickFor
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { Photos.load(context, uri) }
-            if (bmp == null) model.message = "Couldn't open that photo." else cropping = date to bmp
+            if (bmp == null) model.message = "Couldn't open that photo." else cropping = Cropping(date, bmp, replacing)
+            replacing = null
         }
     }
-    fun add(date: LocalDate) { adding = date }
+    fun add(date: LocalDate) { replacing = null; adding = date }
+    fun replace(date: LocalDate, s: Stamp) { replacing = s; adding = date }
+    fun recrop(date: LocalDate, s: Stamp) {
+        scope.launch {
+            val bmp = withContext(Dispatchers.IO) { model.original(s) }
+            if (bmp == null) model.message = "The original photo isn't kept for this stamp." else cropping = Cropping(date, bmp, s)
+        }
+    }
     fun pickPhoto(date: LocalDate) {
-        pickFor = date; adding = null
+        pickFor = date; adding = null // keeps [replacing] for the picker result
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
     fun viewDay(date: LocalDate, s: Stamp) {
@@ -104,6 +114,12 @@ fun AnnalesApp(model: AnnalesModel) {
             }
         }
     }
+    // the seal thunk
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    LaunchedEffect(model.sealedTick) {
+        if (model.sealedTick > 0 && model.haptics) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+    }
+
     BackHandler(enabled = !overlay && (openDay != null || openColl != null)) { if (openDay != null) openDay = null else openColl = null }
 
     Box(Modifier.fillMaxSize().background(K.bg)) {
@@ -116,7 +132,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         TextButton(onClick = { openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
                             Text("‹ ${coll?.name ?: "Journal"}", color = K.acc)
                         }
-                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) })
+                        DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(day, it) }, onRecrop = { recrop(day, it) })
                     }
                     coll != null -> CollectionScreen(
                         model, coll,
@@ -124,7 +140,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         onOpenStamp = { _, s, all -> viewing = Viewing(all, all.indexOfFirst { it.second.id == s.id }, coll) },
                         onOpenDay = { if (it == LocalDate.now()) { openColl = null; tab = Tab.TODAY } else openDay = it },
                     )
-                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) }, onOpenPast = { d, s -> viewDay(d, s) })
+                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(LocalDate.now(), it) }, onRecrop = { recrop(LocalDate.now(), it) })
                     tab == Tab.JOURNAL -> JournalScreen(model, onOpenDay = { if (it == LocalDate.now()) tab = Tab.TODAY else openDay = it })
                     tab == Tab.COLLECTIONS -> CollectionsScreen(
                         model, onOpen = { openColl = it.id },
@@ -150,11 +166,11 @@ fun AnnalesApp(model: AnnalesModel) {
         viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
         adding?.let { date ->
             BackHandler { adding = null }
-            AddSheet(onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx) }, onCancel = { adding = null })
+            AddSheet(onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx, replacing); replacing = null }, onCancel = { adding = null; replacing = null })
         }
-        cropping?.let { (date, bmp) ->
+        cropping?.let { (date, bmp, target) ->
             BackHandler { cropping = null }
-            CropScreen(bmp, onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped) }
+            CropScreen(bmp, model.cut, onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped, replace = target, original = bmp) }
         }
 
         model.message?.let { msg ->
@@ -180,7 +196,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 Modifier.weight(1f).clickable { onTab(t) }.padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(t.glyph, style = TextStyle(fontSize = 18.sp, color = if (on) K.acc else K.muted))
+                TabIcon(t, if (on) K.acc else K.muted)
                 Text(t.label, maxLines = 1, style = TextStyle(fontSize = 10.5.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
@@ -224,6 +240,32 @@ private fun AddSheet(onPhoto: () -> Unit, onSky: (com.annales.journal.render.Sky
                 }
             }
             TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Cancel", color = K.muted) }
+        }
+    }
+}
+
+/** A photo waiting to be framed: for [date], replacing [target] if set. */
+private data class Cropping(val date: LocalDate, val bitmap: Bitmap, val target: Stamp?)
+
+/** The mockup's tab icons, drawn as 1.6-wide lines on a 24 grid. Dashed outlines stand for perforated stamps. */
+@Composable
+private fun TabIcon(t: Tab, c: Color) = androidx.compose.foundation.Canvas(Modifier.size(24.dp)) {
+    val s = size.width / 24f
+    scale(s, s, pivot = androidx.compose.ui.geometry.Offset.Zero) {
+        val line = androidx.compose.ui.graphics.drawscope.Stroke(1.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
+        fun dash(on: Float, off: Float) = androidx.compose.ui.graphics.drawscope.Stroke(1.6f,
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(on, off)))
+        fun p(d: String) = androidx.compose.ui.graphics.vector.PathParser().parsePathString(d).toPath()
+        fun rect(x: Float, y: Float, w: Float, h: Float, r: Float, style: androidx.compose.ui.graphics.drawscope.DrawStyle = line) =
+            drawRoundRect(c, androidx.compose.ui.geometry.Offset(x, y), androidx.compose.ui.geometry.Size(w, h),
+                androidx.compose.ui.geometry.CornerRadius(r), style = style)
+        fun ring(x: Float, y: Float, r: Float) = drawCircle(c, r, androidx.compose.ui.geometry.Offset(x, y), style = line)
+        when (t) {
+            Tab.TODAY -> { rect(5f, 4f, 14f, 17f, 1.5f, dash(2f, 2f)); ring(12f, 12f, 3.2f) }
+            Tab.JOURNAL -> { rect(4f, 5f, 16f, 15f, 2f); drawPath(p("M4 9.5h16M9 3v4M15 3v4"), c, style = line); rect(7f, 12f, 3f, 3.5f, 0f); rect(13.5f, 12f, 3f, 3.5f, 0f) }
+            Tab.COLLECTIONS -> { rect(7f, 3f, 13f, 15f, 1.5f, dash(2f, 1.6f)); drawPath(p("M4 7v13.5c0 .3.2.5.5.5H16"), c, style = line) }
+            Tab.INSIGHTS -> drawPath(p("M4 19h16M6 16c2-6 4-9 6-6s4 1 6-5"), c, style = line)
+            Tab.PROFILE -> { ring(12f, 8.5f, 3.8f); drawPath(p("M4.5 20c1.3-3.6 4-5.3 7.5-5.3s6.2 1.7 7.5 5.3"), c, style = line) }
         }
     }
 }
