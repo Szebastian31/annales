@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.7.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
+> **Pre-release (0.8.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
 
 ---
 
@@ -18,10 +18,13 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 
 ## What it does
 
-- **Up to three stamps a day.** Pick a photo, choose **Portrait**, **Square** or **Wide**, move and pinch it under the frame, and it comes back with a perforated edge cut from the photo itself.
+- **Up to three stamps a day.** Take a photo there and then, or pick one from the library; choose **Portrait**, **Square** or **Wide**, move and pinch it under the frame, and it comes back with a perforated edge cut from the photo itself.
 - **How did it feel?** Drag along the horizon: it frowns towards Very Unpleasant in violet and smiles towards Very Pleasant in blue, with a glowing orb riding the line. The mood dot sits in the stamp's corner.
 - **One line.** Up to 200 characters about the day, with a few prompts to start from.
 - **Stamp first.** The day page is the stamp on its envelope and three rows (state of mind, one line, the postmark), each opening a sheet, then Seal.
+- **Where each stamp was taken.** Every stamp has its own town (type it, pick a recent one, or "Use where I am now"), and its postmark names that town when the day is sealed. Change it any time; a sealed day just re-seals.
+- **Three days back.** The Today tab also holds the three days before it, for the days you didn't get to.
+- **Choose the first stamp.** The first stamp of a day is the one the Journal and Collections show: **Make first** on the day page or in the Journal's stamp view.
 - **What shaped it.** Pick the feelings that fit the mood, and what had the biggest impact (Work, Friends, Travel…).
 - **Seal the day.** In the journal, each stamp gets a Poczta Polska datownik (the office over the top, the postcode underneath, the date bridge and the hour) hanging off its right edge, and wavy cancel lines over the top-left. Every hit is pressed a little differently: angle, pressure and patchy ink.
 - **Inks.** Official black, the way the post office does it, or Post red and Carmine as your own touch.
@@ -35,7 +38,7 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 - **Six looks.** Kraft, Airmail, Gallery, Herbarium, Riviera, and Ink for evenings.
 - **The day's sky.** No photo? Pick the weather and get a drawn stamp with that night's real moon phase and hills in the day's mood colour.
 - **On this day.** The same date in an earlier year, on the Today page.
-- **The postmark card.** Each day lists what the rest of the family saw: the weather worked out the Consensus Weather way (thirteen forecast models, averaged, with how well they agree), the moon, your top track and minutes listened from **Fidelis**, what you spent against safe-to-spend from **Kalendae**, and the day's tone from **Augur**. Profile shows which of them are installed and sharing. Insights uses them too: sunny days, days with lots of music, days within budget.
+- **The postmark card.** Each day lists what the rest of the family saw: the weather worked out the Consensus Weather way (thirteen forecast models, averaged, with how well they agree), the moon, your top track and minutes listened from **Fidelis**, what you spent against safe-to-spend from **Kalendae**, and the day's tone, lucky number and colour from **Augur**. Profile shows which of them are installed and sharing. Insights uses them too: sunny days, days with lots of music, days within budget.
 - **Backups.** Save everything (journal, collections, settings, photos and stamps) to one file, optionally locked with a password (AES-256, the same format as Kalendae), and restore it on a new phone.
 - **Evening reminder.** A soft nudge at 21:30 if today is still unsealed.
 
@@ -50,7 +53,7 @@ Updating: install the new APK over the old one. Your journal stays.
 
 ## Privacy
 
-Everything stays on your phone: the journal, the cropped photos and the stamps. The internet is used for one thing only, the weather: Annales asks the free Open-Meteo forecast (the one Consensus Weather uses) for your post office's town and the day, and nothing about you goes with it. Fidelis, Kalendae and Augur share their daily summaries with Annales on the phone itself, never over the internet, and only to Annales. The only other thing that leaves the app is what you seal, into your own Photos, and backup files you save yourself.
+Everything stays on your phone: the journal, the cropped photos and the stamps. Location is asked for only when you tap "Use where I am now", and only the town is kept. The internet is used for one thing only, the weather: Annales asks the free Open-Meteo forecast (the one Consensus Weather uses) for your post office's town and the day, and nothing about you goes with it. Fidelis, Kalendae and Augur share their daily summaries with Annales on the phone itself, never over the internet, and only to Annales. The only other thing that leaves the app is what you seal, into your own Photos, and backup files you save yourself.
 
 ---
 

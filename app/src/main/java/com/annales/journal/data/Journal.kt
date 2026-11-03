@@ -6,8 +6,8 @@ import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
 
-/** One stamp of a day. The cropped photo and its rendering live in files named after [id]. */
-data class Stamp(val id: String, val title: String = "", val note: String = "", val gallery: String = "")
+/** One stamp of a day. The cropped photo and its rendering live in files named after [id]. [place] is the town it was taken in (blank: the day's post office). */
+data class Stamp(val id: String, val title: String = "", val note: String = "", val gallery: String = "", val place: String = "")
 
 /** A day in the journal: up to three stamps, how it felt, and whether it has been sealed. */
 data class Day(
@@ -77,7 +77,7 @@ class JournalStore(context: Context) {
             date = LocalDate.parse(o.getString("date")),
             stamps = (0 until s.length()).map {
                 val j = s.getJSONObject(it)
-                Stamp(j.getString("id"), j.optString("title"), j.optString("note"), j.optString("gallery"))
+                Stamp(j.getString("id"), j.optString("title"), j.optString("note"), j.optString("gallery"), j.optString("place"))
             },
             mood = if (o.has("mood")) o.getInt("mood") else null,
             sealed = o.optBoolean("sealed"),
@@ -96,7 +96,7 @@ class JournalStore(context: Context) {
 
     private fun writeDay(d: Day) = JSONObject().apply {
         put("date", d.date.toString())
-        put("stamps", JSONArray().apply { d.stamps.forEach { put(JSONObject().put("id", it.id).put("title", it.title).put("note", it.note).put("gallery", it.gallery)) } })
+        put("stamps", JSONArray().apply { d.stamps.forEach { put(JSONObject().put("id", it.id).put("title", it.title).put("note", it.note).put("gallery", it.gallery).put("place", it.place)) } })
         d.mood?.let { put("mood", it) }
         put("sealed", d.sealed)
         put("sealedAt", d.sealedAt)

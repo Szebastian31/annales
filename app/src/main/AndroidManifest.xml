@@ -8,6 +8,8 @@
 
     <!-- Android 11+ hides other apps unless they are named here: the siblings Annales reads from or opens. -->
     <queries>
+        <!-- a camera app, for "Take a photo" -->
+        <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
         <package android:name="com.fidelis.player" />
         <package android:name="com.kalendae.money" />
         <package android:name="com.augur.stars" />
@@ -18,6 +20,8 @@
         <provider android:authorities="com.augur.stars.annales" />
     </queries>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Only when you tap "Use where I am now": the town for a stamp's postmark. Approximate is enough; nothing is stored but the town. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="false"
@@ -42,5 +46,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <!-- Hands the camera app a file to save a new photo into. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.annales.journal.camera"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/camera_paths" />
+        </provider>
     </application>
 </manifest>

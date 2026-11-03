@@ -11,7 +11,7 @@ Annales asks each sibling for a short summary of one day. Nothing leaves the pho
 | --- | --- | --- |
 | Fidelis | `com.fidelis.player` | `music.track`, `music.artist` (the track heard most that day, counted once it plays half way or 4 min), `music.minutes` (whole minutes actually playing) |
 | Kalendae | `com.kalendae.money` | `money.spent` (logged spends that day), `money.safe` (safe to spend per day, as Kalendae showed it that day), formatted like `84 zł`; `money.spentN`, `money.safeN`, the same as plain numbers in your display currency |
-| Augur | `com.augur.stars` | `augur.tone` (the day's tone, e.g. `Reach out`), `augur.agree` (how many of the four day systems voted for it, e.g. `3 of 4`) |
+| Augur | `com.augur.stars` | `augur.tone` (the day's tone, e.g. `Reach out`), `augur.agree` (how many of the four day systems voted for it, e.g. `3 of 4`), `augur.number` (the lucky number), `augur.colour` and `augur.colourHex` (the lucky colour's name and hex; several hexes may be comma-separated) |
 
 Weather and the moon aren't asked for: Annales works out the weather itself the way Consensus Weather does (the same thirteen
 Open-Meteo models, averaged, the condition most models vote for), and calculates the moon like Caelum.

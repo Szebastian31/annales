@@ -115,10 +115,29 @@ fun DayPage(
 
         Envelope(model, day, st, onAdd) { st?.let(onOpen) }
         Strip(model, day, sel, onSelect = { sel = it }, onAdd = onAdd)
-        if (st != null) Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
-            if (model.hasOriginal(st)) Quiet("Re-crop") { onRecrop(st) }
-            Quiet("Replace") { onReplace(st) }
-            Quiet("Remove", warn = true) { model.removeStamp(date, st) }
+        if (st != null) {
+            var placing by remember(st.id) { mutableStateOf(false) }
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
+                Row(
+                    Modifier.clip(RoundedCornerShape(99.dp)).background(K.surface).border(1.dp, K.line, RoundedCornerShape(99.dp))
+                        .clickable { placing = true }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("📍", fontSize = 13.sp)
+                    Text(model.placeOf(date, st), style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 6.dp))
+                    Text("  ✎", style = SmallStyle.copy(color = K.acc))
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center) {
+                if (sel > 0) Quiet("★ Make first") { model.moveStamp(date, st, 0); sel = 0 }
+                if (model.hasOriginal(st)) Quiet("Re-crop") { onRecrop(st) }
+                Quiet("Replace") { onReplace(st) }
+                Quiet("Remove", warn = true) { model.removeStamp(date, st) }
+            }
+            if (placing) {
+                val home = prettyOffice(day.office.ifBlank { model.postmarkFor(date).first }).substringBefore(" ")
+                PlaceDialog(st.place, home, model.placeSuggestions(date), onDismiss = { placing = false }) { model.setPlace(date, st, it); placing = false }
+            }
         }
 
         Column(Modifier.padding(horizontal = 16.dp).padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(K.surface)) {
@@ -185,7 +204,7 @@ internal fun postmarkBits(model: AnnalesModel, day: Day): List<String> {
         x["wx.code"]?.toIntOrNull()?.let { c -> "${SKY_GLYPH[com.annales.journal.data.Siblings.describe(c).second] ?: "☁"} ${x["wx.hi"]}°" },
         x["music.minutes"]?.let { "♪ $it min" },
         x["money.spent"]?.let { "¤ $it" },
-        x["augur.tone"]?.let { "✶ $it" },
+        x["augur.tone"]?.let { "✶ $it" + (x["augur.number"]?.let { n -> " №$n" } ?: "") },
     )
 }
 
@@ -459,19 +478,26 @@ private fun PostmarkCard(model: AnnalesModel, day: Day) {
         if (x["money.spent"] != null) Row1("¤", "${x["money.spent"]} spent", x["money.safe"]?.let { "safe to spend $it a day" } ?: "safe to spend wasn't noted that day", "Kalendae")
         else Row1("¤", "Spent vs safe-to-spend", sourceNote(model, com.annales.journal.data.Siblings.KALENDAE), "Kalendae", faded = true)
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
-        if (x["augur.tone"] != null) Row1("✶", x["augur.tone"]!!, x["augur.agree"]?.let { "$it systems agree" } ?: "where the systems agree", "Augur")
+        if (x["augur.tone"] != null) Row1(
+            "✶", x["augur.tone"]!! + (x["augur.number"]?.let { " · №$it" } ?: ""),
+            listOfNotNull(x["augur.colour"], x["augur.agree"]?.let { "$it systems agree" }).joinToString(" · ").ifBlank { "where the systems agree" },
+            "Augur", swatches = augurColours(x),
+        )
         else Row1("✶", "The day's tone", sourceNote(model, com.annales.journal.data.Siblings.AUGUR), "Augur", faded = true)
     }
 }
 
 @Composable
-private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean = false) = Row(
+private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean = false, swatches: List<Color> = emptyList()) = Row(
     Modifier.fillMaxWidth().padding(vertical = 10.dp).alpha(if (faded) .72f else 1f), verticalAlignment = Alignment.CenterVertically,
 ) {
     Text(ic, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = K.acc), modifier = Modifier.width(30.dp))
     Column(Modifier.weight(1f)) {
         Text(b, style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold))
-        Text(s, style = SmallStyle.copy(fontSize = 12.5.sp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            swatches.forEach { Box(Modifier.padding(end = 5.dp).size(11.dp).background(it, CircleShape).border(1.dp, K.line, CircleShape)) }
+            Text(s, style = SmallStyle.copy(fontSize = 12.5.sp))
+        }
     }
     Text(src.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp))
 }
@@ -548,3 +574,9 @@ private val SKY_GLYPH = com.annales.journal.render.SkyStamp.Weather.entries.asso
 /** Why a sibling's row is empty: not installed, or installed but not sharing yet. */
 private fun sourceNote(model: AnnalesModel, app: com.annales.journal.data.Siblings.App) =
     when { !model.installed(app) -> "${app.name.substringBefore(" ")} isn't installed"; !model.canShare(app) -> "Update ${app.name.substringBefore(" ")} to share"; else -> "Nothing shared for this day yet" }
+
+/** Augur's colour(s) of the day: augur.colourHex, one hex or several separated by commas. */
+internal fun augurColours(x: Map<String, String>): List<Color> =
+    x["augur.colourHex"].orEmpty().split(",").mapNotNull { h ->
+        runCatching { Color(android.graphics.Color.parseColor(h.trim())) }.getOrNull()
+    }.take(3)

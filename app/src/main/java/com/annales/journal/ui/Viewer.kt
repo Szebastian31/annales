@@ -61,7 +61,7 @@ import java.util.Locale
  * you came from, so its cover can be set from here.
  */
 @Composable
-fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int, inside: Collection?, onEdit: ((LocalDate) -> Unit)? = null, onClose: () -> Unit) {
+fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int, inside: Collection?, onEdit: ((LocalDate) -> Unit)? = null, canReorder: Boolean = false, onClose: () -> Unit) {
     var index by remember { mutableIntStateOf(start.coerceIn(0, maxOf(0, items.size - 1))) }
     if (items.isEmpty()) { androidx.compose.runtime.LaunchedEffect(Unit) { onClose() }; return }
     val (date, first) = items[index]
@@ -74,6 +74,8 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
             onPrev = if (index > 0) ({ index-- }) else null,
             onNext = if (index < items.size - 1) ({ index++ }) else null,
             onClose = onClose, onEdit = onEdit?.let { e -> { e(date) } },
+            // the day's stamps in their order: put this one first, the one the calendar and pages show
+            onMakeFirst = if (canReorder && model.day(date).stamps.firstOrNull()?.id != stamp.id) ({ model.moveStamp(date, stamp, 0); index = 0 }) else null,
         )
     }
 }
@@ -81,7 +83,7 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
 @Composable
 private fun ViewerPage(
     model: AnnalesModel, date: LocalDate, stamp: Stamp, inside: Collection?, position: String?,
-    onPrev: (() -> Unit)?, onNext: (() -> Unit)?, onClose: () -> Unit, onEdit: (() -> Unit)? = null,
+    onPrev: (() -> Unit)?, onNext: (() -> Unit)?, onClose: () -> Unit, onEdit: (() -> Unit)? = null, onMakeFirst: (() -> Unit)? = null,
 ) {
     val day = model.day(date)
     var back by remember { mutableStateOf(false) }
@@ -99,6 +101,7 @@ private fun ViewerPage(
             TextButton(onClick = { saveAndClose() }) { Text("‹ Back", color = Color.White) }
             Spacer(Modifier.weight(1f))
             Text(position ?: if (back) "tap to turn back" else "tap the stamp to turn it over", style = SmallStyle.copy(color = Color(0x99FFFFFF)))
+            if (onMakeFirst != null) TextButton(onClick = onMakeFirst) { Text("★ Make first", color = Color.White, fontWeight = FontWeight.Bold) }
             if (onEdit != null) TextButton(onClick = onEdit) { Text("Edit ✎", color = Color.White, fontWeight = FontWeight.Bold) } else Spacer(Modifier.size(12.dp))
         }
         Box(
@@ -133,7 +136,7 @@ private fun ViewerPage(
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
         )
         Text(
-            listOfNotNull(day.mood?.let { Moods.names[it] }, if (day.sealed) "sealed in ${prettyOffice(day.office.ifBlank { model.office })}" else "not sealed yet")
+            listOfNotNull(day.mood?.let { Moods.names[it] }, model.placeOf(date, stamp), if (day.sealed) null else "not sealed yet")
                 .joinToString(" · "),
             style = SmallStyle.copy(color = Color(0xB3FFFFFF)),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp),

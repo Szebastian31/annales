@@ -142,20 +142,43 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     fun setDayInk(date: LocalDate, v: Ink) = edit(date) { it.copy(ink = v.name) }
 
     /** Saves the cropped photo and its perforated draft; [replace] swaps an existing stamp's picture instead of adding one. */
-    fun addStamp(date: LocalDate, cropped: Bitmap, replace: Stamp? = null, original: Bitmap? = null) {
+    fun addStamp(date: LocalDate, cropped: Bitmap, replace: Stamp? = null, original: Bitmap? = null, place: String? = null) {
         val d = day(date)
         if (replace == null && !d.canAdd) return
-        val s = replace ?: Stamp(UUID.randomUUID().toString().take(12))
+        val s = (replace ?: Stamp(UUID.randomUUID().toString().take(12))).let { if (place != null) it.copy(place = place) else it }
         work({
             Photos.writeJpeg(cropped, store.photoFile(s.id))
             if (original != null && keepOriginals) Photos.writeJpeg(original, store.originalFile(s.id)) else store.originalFile(s.id).delete() // a drawn sky has nothing to re-crop
             val draft = StampRenderer.render(cropped, cut, null, s.id.hashCode())
             Photos.writePng(draft, store.stampFile(s.id))
         }, done = {
-            edit(date) { it.copy(stamps = if (replace != null) it.stamps else it.stamps + s) }
+            edit(date) { it.copy(stamps = if (replace != null) it.stamps.map { o -> if (o.id == s.id) s else o } else it.stamps + s) }
             version++
         })
     }
+
+    /** Moves [s] to [to] (0 = first, the one the Journal and Collections show for the day). */
+    fun moveStamp(date: LocalDate, s: Stamp, to: Int) = edit(date) { d ->
+        val rest = d.stamps.filterNot { it.id == s.id }
+        d.copy(stamps = rest.take(to.coerceIn(0, rest.size)) + s + rest.drop(to.coerceIn(0, rest.size)))
+    }
+
+    /** Where a stamp was taken; [town] blank means the day's post office. Changes the postmark it gets when sealed. */
+    fun setPlace(date: LocalDate, s: Stamp, town: String) = edit(date) { d ->
+        d.copy(stamps = d.stamps.map { if (it.id == s.id) it.copy(place = town.trim()) else it })
+    }
+
+    /** The town a stamp's postmark names: its own place, or the day's office (as sealed, or as it would be today). */
+    fun placeOf(date: LocalDate, s: Stamp): String =
+        s.place.ifBlank { prettyPlace(day(date).office.ifBlank { postmarkFor(date).first }) }
+
+    /** Towns to offer when choosing a place: this day's other stamps, the trip, home, then recent ones. */
+    fun placeSuggestions(date: LocalDate): List<String> = buildList {
+        day(date).stamps.forEach { if (it.place.isNotBlank()) add(it.place) }
+        tripOn(date)?.let { add(it.place) }
+        add(prettyPlace(office))
+        days.values.sortedByDescending { it.date }.take(30).forEach { d -> d.stamps.forEach { if (it.place.isNotBlank()) add(it.place) } }
+    }.distinct().take(6)
 
     /** The full photo a stamp was cut from, for re-cropping. */
     fun original(s: Stamp): Bitmap? = BitmapFactory.decodeFile(store.originalFile(s.id).path)
@@ -198,7 +221,9 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         work({
             d.stamps.forEach { s ->
                 val photo = BitmapFactory.decodeFile(store.photoFile(s.id).path) ?: return@forEach
-                val seal = Seal(date, hour, mark, bottom, sealInk.argb, s.id.hashCode() and 0xFFFF)
+                // a stamp taken somewhere else that day gets that town's postmark
+                val (sMark, sBottom) = if (s.place.isBlank()) mark to bottom else Places.of(s.place).let { it.mark to it.bottom }
+                val seal = Seal(date, hour, sMark, sBottom, sealInk.argb, s.id.hashCode() and 0xFFFF)
                 val png = store.stampFile(s.id)
                 Photos.writePng(StampRenderer.render(photo, cut, seal, s.id.hashCode()), png)
                 if (saveToPhotos) {
@@ -362,10 +387,10 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     fun changeLook(v: com.annales.journal.ui.Look) { com.annales.journal.ui.K.look = v; settings.look = v.name }
 
     /** A drawn stamp of the day's sky instead of a photo: the weather you pick, that night's moon, hills in the mood colour. */
-    fun addSky(date: LocalDate, wx: com.annales.journal.render.SkyStamp.Weather, replace: Stamp? = null) {
+    fun addSky(date: LocalDate, wx: com.annales.journal.render.SkyStamp.Weather, replace: Stamp? = null, place: String? = null) {
         val mood = day(date).mood?.let { com.annales.journal.data.Moods.color(it) }
         val art = com.annales.journal.render.SkyStamp.draw(date, wx, mood, (date.toEpochDay() * 31 + day(date).stamps.size).toInt())
-        addStamp(date, art, replace)
+        addStamp(date, art, replace, place = place)
     }
 
     /** The same date in earlier years, newest first, for "On this day". Only days with stamps. */

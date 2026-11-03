@@ -2,6 +2,13 @@ package com.annales.journal.ui
 
 import android.Manifest
 import android.graphics.Bitmap
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,6 +70,7 @@ fun AnnalesApp(model: AnnalesModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var tab by rememberSaveable { mutableStateOf(Tab.TODAY) }
+    var back by rememberSaveable { mutableStateOf(0) }                 // Today tab: 0 = today, up to 3 days back
     var openDay by remember { mutableStateOf<LocalDate?>(null) }        // a past day, opened from the Journal or a collection
     var openColl by remember { mutableStateOf<Long?>(null) }
     var editing by remember { mutableStateOf<Collection?>(null) }       // id 0 = new
@@ -71,27 +79,44 @@ fun AnnalesApp(model: AnnalesModel) {
     var replacing by remember { mutableStateOf<Stamp?>(null) }        // the stamp a picked photo will replace
     var pickFor by remember { mutableStateOf(LocalDate.now()) }
     var adding by remember { mutableStateOf<LocalDate?>(null) }       // the "photo or sky?" sheet is open for this day
+    var addPlace by remember { mutableStateOf("") }                  // where the stamp being added was taken ("" = the day's office)
+    val shot = remember { java.io.File(context.cacheDir, "camera/shot.jpg") }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val date = pickFor
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { Photos.load(context, uri) }
-            if (bmp == null) model.message = "Couldn't open that photo." else cropping = Cropping(date, bmp, replacing)
+            if (bmp == null) model.message = "Couldn't open that photo." else cropping = Cropping(date, bmp, replacing, addPlace)
             replacing = null
         }
     }
-    fun add(date: LocalDate) { replacing = null; adding = date }
-    fun replace(date: LocalDate, s: Stamp) { replacing = s; adding = date }
+    fun add(date: LocalDate) { replacing = null; addPlace = ""; adding = date }
+    fun replace(date: LocalDate, s: Stamp) { replacing = s; addPlace = s.place; adding = date }
     fun recrop(date: LocalDate, s: Stamp) {
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { model.original(s) }
-            if (bmp == null) model.message = "The original photo isn't kept for this stamp." else cropping = Cropping(date, bmp, s)
+            if (bmp == null) model.message = "The original photo isn't kept for this stamp." else cropping = Cropping(date, bmp, s, null)
         }
     }
     fun pickPhoto(date: LocalDate) {
         pickFor = date; adding = null // keeps [replacing] for the picker result
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val date = pickFor
+        if (!ok) { replacing = null; return@rememberLauncherForActivityResult }
+        scope.launch {
+            val bmp = withContext(Dispatchers.IO) { Photos.load(context, android.net.Uri.fromFile(shot)) }
+            if (bmp == null) model.message = "Couldn't open the photo you took." else cropping = Cropping(date, bmp, replacing, addPlace)
+            replacing = null
+        }
+    }
+    fun takePhoto(date: LocalDate) {
+        pickFor = date; adding = null
+        shot.parentFile?.mkdirs()
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "com.annales.journal.camera", shot)
+        runCatching { camera.launch(uri) }.onFailure { model.message = "No camera app on this phone."; replacing = null }
     }
     fun viewDay(date: LocalDate, s: Stamp) {
         val list = model.day(date).stamps.map { date to it }
@@ -133,7 +158,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         // the Journal opens a day on its stamps, full screen; Edit (or a day with no stamps yet) shows the day page
                         val stamps = model.day(day).stamps
                         var edit by remember(day) { mutableStateOf(stamps.isEmpty()) }
-                        if (!edit && stamps.isNotEmpty()) Viewer(model, stamps.map { day to it }, 0, coll, onEdit = { edit = true }) { openDay = null }
+                        if (!edit && stamps.isNotEmpty()) Viewer(model, stamps.map { day to it }, 0, coll, onEdit = { edit = true }, canReorder = true) { openDay = null }
                         else Column {
                             BackHandler(enabled = stamps.isNotEmpty() && !overlay) { edit = false }
                             TextButton(onClick = { if (stamps.isNotEmpty()) edit = false else openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
@@ -148,7 +173,12 @@ fun AnnalesApp(model: AnnalesModel) {
                         onOpenStamp = { _, s, all -> viewing = Viewing(all, all.indexOfFirst { it.second.id == s.id }, coll) },
                         onOpenDay = { if (it == LocalDate.now()) { openColl = null; tab = Tab.TODAY } else openDay = it },
                     )
-                    tab == Tab.TODAY -> DayPage(model, LocalDate.now(), onAdd = { add(LocalDate.now()) }, onOpen = { viewDay(LocalDate.now(), it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(LocalDate.now(), it) }, onRecrop = { recrop(LocalDate.now(), it) })
+                    tab == Tab.TODAY -> Column {
+                        // today, or one of the three days before it, for the days you didn't get to
+                        val d = LocalDate.now().minusDays(back.toLong())
+                        DaySwitch(model, back) { back = it }
+                        DayPage(model, d, modifier = Modifier.weight(1f), onAdd = { add(d) }, onOpen = { viewDay(d, it) }, onOpenPast = { pd, s -> viewDay(pd, s) }, onReplace = { replace(d, it) }, onRecrop = { recrop(d, it) })
+                    }
                     tab == Tab.JOURNAL -> JournalScreen(model, onOpenDay = { if (it == LocalDate.now()) tab = Tab.TODAY else openDay = it })
                     tab == Tab.COLLECTIONS -> CollectionsScreen(
                         model, onOpen = { openColl = it.id },
@@ -174,11 +204,17 @@ fun AnnalesApp(model: AnnalesModel) {
         viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
         adding?.let { date ->
             BackHandler { adding = null }
-            AddSheet(suggested = model.day(date).extras["wx.code"]?.toIntOrNull()?.let { com.annales.journal.data.Siblings.describe(it).second }, onPhoto = { pickPhoto(date) }, onSky = { wx -> adding = null; model.addSky(date, wx, replacing); replacing = null }, onCancel = { adding = null; replacing = null })
+            AddSheet(
+                model, date, replacing, addPlace, onPlace = { addPlace = it },
+                suggested = model.day(date).extras["wx.code"]?.toIntOrNull()?.let { com.annales.journal.data.Siblings.describe(it).second },
+                onPhoto = { pickPhoto(date) }, onCamera = { takePhoto(date) },
+                onSky = { wx -> adding = null; model.addSky(date, wx, replacing, place = addPlace); replacing = null },
+                onCancel = { adding = null; replacing = null },
+            )
         }
-        cropping?.let { (date, bmp, target) ->
+        cropping?.let { (date, bmp, target, place) ->
             BackHandler { cropping = null }
-            CropScreen(bmp, model.cut, startShape = target?.let { model.shapeOf(it) } ?: "portrait", onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped, replace = target, original = bmp) }
+            CropScreen(bmp, model.cut, startShape = target?.let { model.shapeOf(it) } ?: "portrait", onCancel = { cropping = null }) { cropped -> cropping = null; model.addStamp(date, cropped, replace = target, original = bmp, place = place) }
         }
 
         model.message?.let { msg ->
@@ -188,6 +224,34 @@ fun AnnalesApp(model: AnnalesModel) {
                 modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 86.dp)
                     .background(Color(0xE61F1A16), RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 10.dp),
             )
+        }
+    }
+}
+
+/** Today and the three days before it, so a day you didn't get to can still be added and sealed. A dot: sealed (filled) or started (ring). */
+@Composable
+private fun DaySwitch(model: AnnalesModel, back: Int, onBack: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+        (3 downTo 0).forEach { b ->
+            val date = LocalDate.now().minusDays(b.toLong())
+            val day = model.day(date)
+            val on = b == back
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) K.ink else K.surface)
+                    .clickable { onBack(b) }.padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    when (b) { 0 -> "Today"; 1 -> "Yesterday"; else -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d", java.util.Locale.ENGLISH)) },
+                    maxLines = 1, style = SmallStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (on) K.surface else K.ink),
+                )
+                val started = day.stamps.isNotEmpty() || day.mood != null
+                Box(
+                    Modifier.padding(top = 4.dp).size(6.dp)
+                        .background(if (day.sealed) (if (on) K.surface else K.green) else Color.Transparent, CircleShape)
+                        .border(1.5.dp, if (day.sealed || started) (if (on) K.surface else if (day.sealed) K.green else K.acc) else Color.Transparent, CircleShape),
+                )
+            }
         }
     }
 }
@@ -212,50 +276,105 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
     }
 }
 
-/** "Add a stamp": a photo from the library, or a drawn stamp of the day's sky in the weather you pick. */
+/**
+ * "Add a stamp": where it was taken, then a photo (taken now or from the library) or a drawn stamp of the day's sky.
+ * The sky choices are the real drawings, in this day's mood colour.
+ */
 @Composable
-private fun AddSheet(suggested: com.annales.journal.render.SkyStamp.Weather? = null, onPhoto: () -> Unit, onSky: (com.annales.journal.render.SkyStamp.Weather) -> Unit, onCancel: () -> Unit) {
+private fun AddSheet(
+    model: AnnalesModel, date: LocalDate, replacing: Stamp?, place: String, onPlace: (String) -> Unit,
+    suggested: com.annales.journal.render.SkyStamp.Weather? = null,
+    onPhoto: () -> Unit, onCamera: () -> Unit, onSky: (com.annales.journal.render.SkyStamp.Weather) -> Unit, onCancel: () -> Unit,
+) {
+    val context = LocalContext.current
+    val home = prettyOffice(model.postmarkFor(date).first).substringBefore(" ")
+    var choosing by remember { mutableStateOf(false) }
+    // today, with location already allowed: start from where you are
+    LaunchedEffect(date) {
+        if (replacing == null && place.isBlank() && date == LocalDate.now() && canLocate(context))
+            com.annales.journal.data.Here.town(context)?.let { t -> if (!t.equals(home, ignoreCase = true)) onPlace(t) }
+    }
+    val mood = model.day(date).mood?.let { com.annales.journal.data.Moods.color(it) }
+    val previews = remember(date, mood) { mutableStateMapOf<com.annales.journal.render.SkyStamp.Weather, ImageBitmap>() }
+    LaunchedEffect(date, mood) {
+        com.annales.journal.render.SkyStamp.Weather.entries.forEach { wx ->
+            val b = withContext(Dispatchers.Default) {
+                val full = com.annales.journal.render.SkyStamp.draw(date, wx, mood, (date.toEpochDay() * 31).toInt())
+                Bitmap.createScaledBitmap(full, 200, 250, true).also { if (it != full) full.recycle() }
+            }
+            previews[wx] = b.asImageBitmap()
+        }
+    }
+
     Box(
         Modifier.fillMaxSize().background(Color(0x991F1A16)).clickable(onClick = onCancel),
         contentAlignment = Alignment.BottomCenter,
     ) {
         Column(
-            Modifier.fillMaxWidth().background(K.surface, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .clickable(enabled = false) { }.navigationBarsPadding().padding(20.dp)
+            Modifier.fillMaxWidth().background(K.surface, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .clickable(enabled = false) { }.navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 12.dp)
         ) {
-            Text("Add a stamp", style = TitleStyle.copy(fontSize = 22.sp))
+            Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(width = 36.dp, height = 4.dp).background(K.line, RoundedCornerShape(2.dp)))
+            Text(if (replacing != null) "Replace this stamp" else "Add a stamp", style = TitleStyle.copy(fontSize = 24.sp, lineHeight = 28.sp))
+
             Row(
-                Modifier.fillMaxWidth().padding(top = 14.dp).background(K.page, RoundedCornerShape(16.dp)).clickable(onClick = onPhoto).padding(14.dp),
+                Modifier.padding(top = 12.dp).fillMaxWidth().background(K.page, RoundedCornerShape(14.dp)).clickable { choosing = true }
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("🖼", fontSize = 24.sp)
-                Column(Modifier.padding(start = 12.dp)) {
-                    Text("Photo library", style = BodyStyle.copy(fontWeight = FontWeight.Bold))
-                    Text("Pick any photo, then frame it", style = SmallStyle)
+                Text("📍", fontSize = 16.sp)
+                Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Text("TAKEN IN", style = KickerStyle)
+                    Text(place.ifBlank { home }, style = BodyStyle.copy(fontWeight = FontWeight.Bold))
                 }
+                Text("Change", style = SmallStyle.copy(color = K.acc, fontWeight = FontWeight.Bold))
             }
-            Text("THE DAY'S SKY", style = KickerStyle, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
-            Text(if (suggested != null) "Consensus Weather says ${suggested.label.lowercase()} that day. A drawn stamp of the weather and that night's moon, with hills in the mood colour." else "A drawn stamp of the weather and tonight's moon, with hills in the day's mood colour.", style = SmallStyle)
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                Source("◉", "Take a photo", "Right now", Modifier.weight(1f), onCamera)
+                Source("▦", "From library", "Any photo", Modifier.weight(1f), onPhoto)
+            }
+
+            Text("OR THE DAY'S SKY", style = KickerStyle, modifier = Modifier.padding(top = 20.dp, bottom = 3.dp))
+            Text(
+                if (suggested != null) "Consensus Weather says ${suggested.label.lowercase()}. Drawn with that night's moon, in the day's mood colour."
+                else "Drawn with that night's moon, in the day's mood colour.",
+                style = SmallStyle,
+            )
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 com.annales.journal.render.SkyStamp.Weather.entries.forEach { wx ->
-                    Column(
-                        Modifier.weight(1f).background(if (wx == suggested) K.accSoft else K.page, RoundedCornerShape(12.dp))
-                            .border(if (wx == suggested) 1.5.dp else 0.dp, if (wx == suggested) K.acc else Color.Transparent, RoundedCornerShape(12.dp))
-                            .clickable { onSky(wx) }.padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(wx.glyph, fontSize = 22.sp, color = K.ink)
-                        Text(wx.label.substringBefore(" "), style = SmallStyle.copy(fontSize = 12.sp), maxLines = 1)
+                    val on = wx == suggested
+                    Column(Modifier.weight(1f).clickable { onSky(wx) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier.fillMaxWidth().aspectRatio(.8f).clip(RoundedCornerShape(8.dp)).background(Color(wx.mid))
+                                .border(if (on) 2.dp else 0.dp, if (on) K.acc else Color.Transparent, RoundedCornerShape(8.dp)),
+                        ) {
+                            previews[wx]?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                        }
+                        Text(
+                            wx.label.substringBefore(" "), maxLines = 1, modifier = Modifier.padding(top = 5.dp),
+                            style = SmallStyle.copy(fontSize = 12.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
+                        )
                     }
                 }
             }
-            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Cancel", color = K.muted) }
+            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Cancel", color = K.muted) }
         }
     }
+    if (choosing) PlaceDialog(place, home, model.placeSuggestions(date), onDismiss = { choosing = false }) { onPlace(it); choosing = false }
 }
 
-/** A photo waiting to be framed: for [date], replacing [target] if set. */
-private data class Cropping(val date: LocalDate, val bitmap: Bitmap, val target: Stamp?)
+@Composable
+private fun Source(glyph: String, title: String, sub: String, modifier: Modifier, onClick: () -> Unit) = Column(
+    modifier.background(K.ink, RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 16.dp),
+) {
+    Text(glyph, style = TextStyle(fontSize = 22.sp, color = K.surface, fontWeight = FontWeight.Bold))
+    Text(title, style = BodyStyle.copy(color = K.surface, fontWeight = FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
+    Text(sub, style = SmallStyle.copy(color = K.surface.copy(alpha = .7f)))
+}
+
+/** A photo waiting to be framed: for [date], replacing [target] if set, taken in [place] (null: leave the stamp's place as it is). */
+private data class Cropping(val date: LocalDate, val bitmap: Bitmap, val target: Stamp?, val place: String?)
 
 /** The mockup's tab icons, drawn as 1.6-wide lines on a 24 grid. Dashed outlines stand for perforated stamps. */
 @Composable
