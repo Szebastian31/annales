@@ -6,7 +6,8 @@ async function openCrop(date, photo, replacing, place) {
   const st = { shape: replacing ? await M.shapeOf(replacing) : 'portrait', filter: 'natural', scale: 0, ox: 0, oy: 0, bw: 0, bh: 0 };
   const view = photo; // shown as is: a CSS transform moves it, a CSS filter previews the look
   Object.assign(view.style, { position: 'absolute', left: 0, top: 0, right: 'auto', bottom: 'auto', transformOrigin: '0 0', visibility: 'hidden', width: photo.width + 'px', height: photo.height + 'px' });
-  const mask = h('canvas');
+  // drawn at the screen's pixel density, but always shown at the stage's own size
+  const mask = h('canvas', { style: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } });
   const stage = h('div.stage', null, view, mask);
   const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0, style: { flex: 1, marginLeft: '12px' } });
   const chipsShape = h('div.row', { style: { gap: '6px', padding: '0 16px 8px' } });
