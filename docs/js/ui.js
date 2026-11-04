@@ -46,6 +46,7 @@ function stampView(id, doy, mood, width, opt = {}) {
   const slot = h('div.st', { style: { width, height: width * 1.25, overflow: bleed ? 'visible' : 'hidden', transform: opt.rotation ? `rotate(${opt.rotation}deg)` : null } });
   const inner = h('div.inner', { style: { width, height: width * 1.25 } });
   const img = h('img', { alt: '', draggable: false });
+  slot.append(inner);
   const layout = (bw, bh) => {
     const padded = bw > SR.W;
     const pw = padded ? bw - SR.PL - SR.PR : bw, ph = padded ? bh - SR.PT - SR.PB : bh;

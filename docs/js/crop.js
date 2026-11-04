@@ -5,7 +5,7 @@
 async function openCrop(date, photo, replacing, place) {
   const st = { shape: replacing ? await M.shapeOf(replacing) : 'portrait', filter: 'natural', scale: 0, ox: 0, oy: 0, bw: 0, bh: 0 };
   const view = photo; // shown as is: a CSS transform moves it, a CSS filter previews the look
-  Object.assign(view.style, { position: 'absolute', left: 0, top: 0, right: 'auto', bottom: 'auto', transformOrigin: '0 0', width: photo.width + 'px', height: photo.height + 'px' });
+  Object.assign(view.style, { position: 'absolute', left: 0, top: 0, right: 'auto', bottom: 'auto', transformOrigin: '0 0', visibility: 'hidden', width: photo.width + 'px', height: photo.height + 'px' });
   const mask = h('canvas');
   const stage = h('div.stage', null, view, mask);
   const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0, style: { flex: 1, marginLeft: '12px' } });
@@ -23,6 +23,7 @@ async function openCrop(date, photo, replacing, place) {
 
   const paint = () => {
     if (st.scale <= 0) return;
+    view.style.visibility = 'visible';
     view.style.transform = `translate(${st.ox}px, ${st.oy}px) scale(${st.scale})`;
     view.style.filter = Filters.cssOf[st.filter];
     const dpr = window.devicePixelRatio || 1;
@@ -87,6 +88,7 @@ async function openCrop(date, photo, replacing, place) {
 
   let doing = false;
   const done = async () => {
+    if (st.scale <= 0) layout();
     if (st.scale <= 0 || doing) return;
     doing = true;
     const f = frame(), s = st.scale;
@@ -115,5 +117,8 @@ async function openCrop(date, photo, replacing, place) {
   ], { className: 'full crop', fixed: true });
   const ro = new ResizeObserver(layout);
   ro.observe(stage);
+  // don't wait on the observer alone: lay it out as soon as the screen has a size
+  const settle = () => { if (!Layers.has('crop')) return; layout(); if (st.scale <= 0) requestAnimationFrame(settle); };
+  settle(); setTimeout(layout, 100);
   chips();
 }
