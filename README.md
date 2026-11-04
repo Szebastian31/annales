@@ -74,7 +74,7 @@ Released under the [MIT License](LICENSE).
 
 ---
 
-_Annales is Latin for yearly records: the Roman chronicles, kept year by year. It's a sibling to Consensus Weather, Hora, Caelum, Kalendae, Augur and Fidelis._
+_Annales is Latin for yearly records: the Roman chronicles, kept year by year. It's a sibling to Hora, Consensus Weather, Augur, Kalendae, Caelum and Fidelis, all one tap away in [Hub](https://github.com/Szebastian31/hub)._
 
 <details>
 <summary>For developers</summary>
