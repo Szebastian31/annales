@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- only apps signed with the family key may read the day summaries -->
+    <permission
+        android:name="com.szebastian.family.READ_DAY"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.szebastian.family.READ_DAY" />
+
     <!-- Only for the weather: the same free Open-Meteo forecast Consensus Weather uses. Nothing about you is sent. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- The evening reminder ("Today is still unsealed"), and putting it back after a restart. -->

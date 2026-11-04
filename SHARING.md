@@ -28,3 +28,5 @@ Augur shares today's tone whenever it works out the day. Each keeps 120 days, in
 
 **Older days.** Kalendae only knows safe-to-spend on the day itself, and Augur only shares a day you opened it on,
 so a gap there means the app wasn't opened that day, not that something broke.
+
+Callers also need the signature permission `com.szebastian.family.READ_DAY`, so only apps signed with the family key can ask.
