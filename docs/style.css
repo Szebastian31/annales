@@ -240,7 +240,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 .sum div { flex: 1; text-align: center; }
 .sum b { display: block; font: 600 22px var(--serif); }
 .sum span { font-size: 12px; color: var(--muted); }
-.bar7 { display: flex; height: 10px; border-radius: 99px; overflow: hidden; margin-top: 12px; }
+.bar7 { display: flex; gap: 2px; height: 10px; border-radius: 99px; overflow: hidden; margin-top: 12px; }
+.bar7 i { min-width: 3px; }
 .bar7.thin { height: 8px; margin-top: 5px; }
 .link { background: color-mix(in srgb, var(--page) 55%, transparent); border-radius: 14px; padding: 12px; margin: 4px 0; width: 100%; text-align: left; }
 .link .g { width: 30px; font-size: 20px; color: var(--acc); flex: none; }

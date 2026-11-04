@@ -33,32 +33,72 @@ function insightsScreen() {
   return out;
 }
 
-/** Seven faint lines, one per mood; a dot per day, a gradient bar where a column holds more than one mood. */
+/**
+ * Seven faint lines, one per mood; a dot per day, a gradient bar where a column holds more than one mood.
+ * Drawn on a canvas at the chart's real size (never stretched), so lines stay one pixel and dots stay round.
+ */
 function moodChart(cols) {
-  const W = 300, H = 150, pad = 6, y = m => H - pad - (H - 2 * pad) * m / 6;
-  const cw = W / Math.max(1, cols.length), r = Math.min(5, cw * .38);
-  let svg = '<defs>';
-  const body = [];
-  for (let m = 0; m <= 6; m++) body.push(`<line x1="0" x2="${W}" y1="${y(m)}" y2="${y(m)}" stroke="var(--line)" stroke-width="1"/>`);
-  cols.forEach((c, i) => {
-    const x = cw * (i + .5);
-    if (c.trip) body.push(`<rect x="${x - cw / 2 + 1}" y="0" width="${cw - 2}" height="${H}" rx="4" fill="var(--accSoft)" opacity=".6"/>`);
-    if (c.moods.length > 1) {
-      const lo = Math.min(...c.moods), hi = Math.max(...c.moods);
-      if (hi > lo) {
-        svg += `<linearGradient id="g${i}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${Moods.css(hi)}"/><stop offset="1" stop-color="${Moods.css(lo)}"/></linearGradient>`;
-        body.push(`<rect x="${x - r}" y="${y(hi)}" width="${2 * r}" height="${y(lo) - y(hi)}" rx="${r}" fill="url(#g${i})"/>`);
-      }
+  const cv = h('canvas', { style: { width: '100%', height: '100%', display: 'block' } });
+  const box = h('div', { style: { height: '172px', marginTop: '12px', position: 'relative' } }, cv);
+  const paint = () => {
+    const W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const g = cv.getContext('2d'), l = K.look;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const font = getComputedStyle(document.body).fontFamily;
+    g.font = `500 11px ${font}`; g.textBaseline = 'middle';
+    const names = ['Very Pleasant', 'Neutral', 'Very Unpleasant'];
+    const gutter = Math.ceil(Math.max(...names.map(t => g.measureText(t).width))) + 10;
+    const top = 8, bottom = H - 22, x0 = gutter, cw0 = W - gutter;
+    const y = m => Math.round(bottom - (bottom - top) * m / 6) + .5; // on the pixel grid: crisp 1px lines
+    // the mood lines; the three named ones a little stronger
+    for (let m = 0; m <= 6; m++) {
+      g.strokeStyle = css(l.line); g.lineWidth = 1;
+      g.globalAlpha = m % 3 === 0 ? 1 : .55;
+      g.beginPath(); g.moveTo(x0, y(m)); g.lineTo(W, y(m)); g.stroke();
     }
-    [...new Set(c.moods)].forEach(m => body.push(`<circle cx="${x}" cy="${y(m)}" r="${r + 1.5}" fill="#fff"/><circle cx="${x}" cy="${y(m)}" r="${r}" fill="${Moods.css(m)}"/>`));
-  });
-  svg += '</defs>' + body.join('');
-  return h('div.row', { style: { height: '170px', paddingTop: '12px', alignItems: 'stretch' } },
-    h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '6px', paddingBottom: '18px' } },
-      ['Very Pleasant', 'Neutral', 'Very Unpleasant'].map(t => h('span.small', { style: { fontSize: '11px', lineHeight: '13px' } }, t))),
-    h('div.grow', { style: { display: 'flex', flexDirection: 'column' } },
-      h('div', { style: { flex: 1 }, html: `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;overflow:visible">${svg}</svg>` }),
-      h('div.row', { style: { paddingTop: '4px' } }, cols.map(c => h('span.small', { style: { flex: 1, minWidth: 0, fontSize: '11px', textAlign: 'center', whiteSpace: 'nowrap' } }, c.label)))));
+    g.globalAlpha = 1;
+    g.fillStyle = rgb(l.muted); g.textAlign = 'left';
+    [[6, names[0]], [3, names[1]], [0, names[2]]].forEach(([m, t]) => g.fillText(t, 0, y(m)));
+
+    const cw = cw0 / Math.max(1, cols.length), r = Math.max(2, Math.min(5, cw * .36));
+    let lastRight = -1e9;
+    cols.forEach((c, i) => {
+      const x = x0 + cw * (i + .5);
+      if (c.trip) { g.fillStyle = rgb(l.accSoft, .6); roundRect(g, x - cw / 2 + 1, top - 6, cw - 2, bottom - top + 12, 4); g.fill(); }
+      if (c.moods.length > 1) {
+        const lo = Math.min(...c.moods), hi = Math.max(...c.moods);
+        if (hi > lo) {
+          const gr = g.createLinearGradient(0, y(hi), 0, y(lo));
+          gr.addColorStop(0, Moods.css(hi)); gr.addColorStop(1, Moods.css(lo));
+          g.fillStyle = gr; roundRect(g, x - r, y(hi) - r, 2 * r, y(lo) - y(hi) + 2 * r, r); g.fill();
+        }
+      }
+      [...new Set(c.moods)].forEach(m => {
+        g.fillStyle = rgb(l.surface); g.beginPath(); g.arc(x, y(m), r + 1.5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = Moods.css(m); g.beginPath(); g.arc(x, y(m), r, 0, Math.PI * 2); g.fill();
+      });
+      // day labels under their column, skipped where they would run into the previous one
+      if (c.label) {
+        const w = g.measureText(c.label).width;
+        if (x - w / 2 >= lastRight + 4 && x + w / 2 <= W) {
+          g.fillStyle = rgb(l.muted); g.textAlign = 'center'; g.fillText(c.label, x, H - 8);
+          lastRight = x + w / 2;
+        }
+      }
+    });
+  };
+  new ResizeObserver(paint).observe(box);
+  requestAnimationFrame(paint);
+  return box;
+}
+function roundRect(g, x, y, w, hh, r) {
+  r = Math.min(r, w / 2, hh / 2);
+  g.beginPath();
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + hh, r); g.arcTo(x + w, y + hh, x, y + hh, r);
+  g.arcTo(x, y + hh, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
 }
 
 function mixBar(mix, cls) {
