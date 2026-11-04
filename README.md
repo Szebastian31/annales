@@ -4,6 +4,8 @@
 
 **Your days, sealed as stamps.**
 
+![Annales on five phones: collections, the journal, today's sealed stamp, its postmark and insights](screenshots/banner.png)
+
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
 > **Pre-release (0.9.0), Android only for now.** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
@@ -42,6 +44,17 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 - **Backups.** Save everything (journal, collections, settings, photos and stamps) to one file, optionally locked with a password (AES-256, the same format as Kalendae), and restore it on a new phone.
 - **Evening reminder.** A soft nudge at 21:30 if today is still unsealed.
 
+## Screens
+
+<p align="center">
+<img src="screenshots/today.png" width="19%" alt="Today: the day's stamp on its envelope, sealed with a Gliwice postmark">
+<img src="screenshots/postmark.png" width="19%" alt="The postmark: what Caelum, Consensus Weather, Fidelis, Kalendae and Augur saw that day">
+<img src="screenshots/journal.png" width="19%" alt="The journal: October in stamps, with a trip and a wedding marked">
+<img src="screenshots/collections.png" width="19%" alt="Collections: two trips, a wedding, an anniversary and a theme">
+<img src="screenshots/insights.png" width="19%" alt="Insights: moods over the month and what comes with the good days">
+</p>
+
+_Today · The postmark · Journal · Collections · Insights. Drawn from the app's own layouts with a made-up month; in the app, the stamps are your photos._
 ## Getting started
 
 1. Open **[Releases](../../releases)** on your phone and download **Annales_v….apk** from the latest release.
@@ -78,6 +91,7 @@ A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), wit
 | `ui/` | Today (`DayPage`), Journal, Collections and their form, Insights, the crop screen, the viewer, Profile and the six looks |
 | `tools/icon.js`, `tools/icon.html`, `tools/icon.sh` | Draw the icon and render every PNG in `icons/` and the launcher layers |
 | `tools/install.sh` | Waits for the build of your last push and installs it on the plugged-in phone |
+| `tools/screens.html`, `tools/banner.html`, `tools/screenshots.sh` | Mockups of five screens in the Kraft look with a made-up month, and the script that turns them into everything in `screenshots/` (needs Google Chrome) |
 | `.github/workflows/android.yml` | Builds the APK and publishes each version as a release |
 | `SHARING.md` | How Fidelis, Kalendae and Augur share a day with Annales: the address, who may ask, and every key |
 

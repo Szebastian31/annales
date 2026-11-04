@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Annales banner</title>
+<!-- The README banner: five screens in phone frames, laid out like the other apps' banners.
+     tools/screenshots.sh turns this page into screenshots/banner.png. banner.html?live draws the screens straight
+     from screens.html instead of the PNGs, for a preview before they exist. Colours: the Kraft look (ui/Theme.kt). -->
+<style>
+  :root{--top:#DDC39B;--mid:#CDAE84;--bot:#B48A5B;--b1:rgba(255,244,222,.55);--b2:rgba(143,59,34,.2);--b3:rgba(61,90,64,.2);--ink:#3B2A1A;--muted:rgba(59,42,26,.72)}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1280px;height:720px;overflow:hidden}
+  body{font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;position:relative;
+    background:radial-gradient(50% 60% at 14% 6%,var(--b1),transparent 70%),radial-gradient(45% 55% at 90% 30%,var(--b2),transparent 70%),
+      radial-gradient(60% 50% at 40% 104%,var(--b3),transparent 70%),linear-gradient(180deg,var(--top),var(--mid) 60%,var(--bot))}
+  /* paper grain and a faint postmark, like the envelope on the day page */
+  body::before{content:"";position:absolute;inset:0;opacity:.5;
+    background-image:radial-gradient(rgba(60,35,10,.1) .8px,transparent 1.2px),radial-gradient(rgba(60,35,10,.07) .7px,transparent 1.1px);
+    background-size:11px 13px,17px 9px;background-position:0 0,5px 6px}
+  .mark{position:absolute;opacity:.16}
+  .mark.a{right:48px;top:30px;width:150px;height:150px;transform:rotate(-12deg)}
+  .mark.b{right:170px;top:58px;width:210px;height:88px}
+  .mark.c{left:40px;top:40px;width:120px;height:120px;transform:rotate(9deg);opacity:.1}
+  header{position:absolute;left:0;right:0;top:44px;text-align:center}
+  header .row{display:inline-flex;align-items:center;gap:16px}
+  header .ico{width:58px;height:58px;border-radius:16px;display:block;box-shadow:0 10px 24px -10px rgba(60,35,10,.6)}
+  h1{font-family:"SF Pro Display",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;font-weight:700;font-size:58px;letter-spacing:-2px;line-height:1}
+  header p{margin-top:12px;font-size:19px;font-weight:500;color:var(--muted)}
+  .phones{position:absolute;left:0;right:0;top:200px;height:640px}
+  .phone{position:absolute;top:0;width:250px;aspect-ratio:390/844;border-radius:42px;padding:9px;background:#1A1410;
+    box-shadow:0 0 0 1.5px rgba(255,255,255,.16) inset,0 40px 70px -30px rgba(60,35,10,.8),0 0 0 1px rgba(0,0,0,.35)}
+  .phone img,.phone .live{display:block;width:100%;height:100%;border-radius:34px;object-fit:cover;object-position:top;overflow:hidden;position:relative}
+  .phone .live iframe{position:absolute;left:0;top:0;width:390px;height:844px;border:0;transform-origin:0 0;transform:scale(.5949)}
+  .phone::before{content:"";position:absolute;top:18px;left:50%;width:74px;height:22px;margin-left:-37px;border-radius:12px;background:#1A1410;z-index:2}
+  .p1{left:110px;transform:translateY(70px) rotate(-6deg)}
+  .p2{left:330px;transform:translateY(26px) rotate(-2.5deg)}
+  .p3{left:515px;z-index:3;width:250px}
+  .p4{left:700px;transform:translateY(26px) rotate(2.5deg)}
+  .p5{left:920px;transform:translateY(70px) rotate(6deg)}
+  .p2,.p4{z-index:2}
+</style>
+</head>
+<body>
+<svg class="mark a" viewBox="0 0 100 100"><g fill="none" stroke="#1E1B18" stroke-width="2.6"><circle cx="50" cy="50" r="45"/><path d="M5 40H95M5 61H95"/></g>
+  <defs><path id="bt" d="M19 50A31 31 0 0 1 81 50"/><path id="bb" d="M17 52A33 33 0 0 0 83 52"/></defs>
+  <g fill="#1E1B18" font-family="Roboto,Arial,sans-serif" font-weight="700" text-anchor="middle"><text font-size="12.5" letter-spacing="1.4"><textPath href="#bt" startOffset="50%">GLIWICE 1</textPath></text>
+  <text font-size="11.5" letter-spacing="1.6"><textPath href="#bb" startOffset="50%">44-100</textPath></text><text x="50" y="55.5" font-size="13">04.11.26-21</text></g></svg>
+<svg class="mark b" viewBox="0 0 120 50"><g fill="none" stroke="#1E1B18" stroke-width="2.4" stroke-linecap="round">
+  <path d="M0 6C10 1 20 1 30 6S50 11 60 6S80 1 90 6S110 11 120 6"/><path d="M0 15C10 10 20 10 30 15S50 20 60 15S80 10 90 15S110 20 120 15"/><path d="M0 24C10 19 20 19 30 24S50 29 60 24S80 19 90 24S110 29 120 24"/><path d="M0 33C10 28 20 28 30 33S50 38 60 33S80 28 90 33S110 38 120 33"/><path d="M0 42C10 37 20 37 30 42S50 47 60 42S80 37 90 42S110 47 120 42"/></g></svg>
+<svg class="mark c" viewBox="0 0 100 100"><g fill="none" stroke="#8F3B22" stroke-width="2.6"><circle cx="50" cy="50" r="45"/><path d="M5 40H95M5 61H95"/></g>
+  <defs><path id="ct" d="M19 50A31 31 0 0 1 81 50"/></defs><g fill="#8F3B22" font-family="Roboto,Arial,sans-serif" font-weight="700" text-anchor="middle">
+  <text font-size="12.5" letter-spacing="1.4"><textPath href="#ct" startOffset="50%">KRAKÓW 1</textPath></text><text x="50" y="55.5" font-size="13">14.10.26-18</text></g></svg>
+<header>
+  <div class="row"><img class="ico" src="../icons/icon-512.png" alt="" onerror="this.style.display='none'"><h1>Annales</h1></div>
+  <p>Your days, sealed as stamps.</p>
+</header>
+<div class="phones">
+  <div class="phone p1" data-s="collections"><img src="../screenshots/collections.png" alt=""></div>
+  <div class="phone p2" data-s="journal"><img src="../screenshots/journal.png" alt=""></div>
+  <div class="phone p3" data-s="today"><img src="../screenshots/today.png" alt=""></div>
+  <div class="phone p4" data-s="postmark"><img src="../screenshots/postmark.png" alt=""></div>
+  <div class="phone p5" data-s="insights"><img src="../screenshots/insights.png" alt=""></div>
+</div>
+<script>
+  if (/[?&]live/.test(location.search)) document.querySelectorAll('.phone').forEach(p => {
+    p.innerHTML = `<div class="live"><iframe src="screens.html?screen=${p.dataset.s}" title="${p.dataset.s}"></iframe></div>`;
+  });
+</script>
+</body>
+</html>

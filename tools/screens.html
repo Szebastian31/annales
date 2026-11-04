@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Annales screens</title>
+<!-- Mockups of Annales' screens for the README, drawn from the app's own layouts (ui/*.kt) in the Kraft look (ui/Theme.kt),
+     with a made-up month in Gliwice. tools/screenshots.sh loads this through tools/phone.html.
+     screens.html?screen=today, journal, collections, postmark or insights -->
+<style>
+  :root{--bg:#CDAE84;--surface:#ECDCBF;--page:#DCC39C;--ink:#3B2A1A;--muted:#4F3A26;--line:rgba(70,45,20,.18);
+    --acc:#8F3B22;--accSoft:#E3C9A6;--green:#3D5A40;--onAcc:#fff;
+    --serif:"Noto Serif",Georgia,"Times New Roman",serif;--sans:Roboto,"Google Sans",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:390px;height:844px;overflow:hidden;background:var(--bg)}
+  body{font:600 15px/1.4 var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;position:relative}
+  svg.defs{position:absolute;width:0;height:0}
+
+  .sb{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 26px;font-size:14px;font-weight:600;color:var(--ink)}
+  .sb .ic{display:flex;gap:6px;align-items:center}
+  .main{position:absolute;top:30px;left:0;right:0;bottom:78px;overflow:hidden}
+  .tabs{position:absolute;left:0;right:0;bottom:0;height:78px;padding-bottom:14px;background:rgba(236,220,191,.96);display:flex;align-items:center}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted);font-weight:600}
+  .tab.on{color:var(--acc);font-weight:700}
+  .tab i{width:4px;height:4px;border-radius:50%;margin-top:3px}
+  .tab.on i{background:var(--acc)}
+
+  .kick{font-size:12px;font-weight:700;letter-spacing:1.6px;color:var(--muted);text-transform:uppercase}
+  .title{font:600 30px/34px var(--serif);color:var(--ink);margin-top:4px}
+  .title em,em.a{color:var(--acc);font-style:italic}
+  .hdr{padding:14px 22px}
+  .small{font-size:14px;line-height:19px;color:var(--muted)}
+  .serif{font-family:var(--serif)}
+  .card{margin:6px 16px;background:var(--surface);border-radius:18px;padding:16px}
+  .row{display:flex;align-items:center}
+  .grow{flex:1;min-width:0}
+  .pillbar{margin:0 16px;display:flex;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:3px}
+  .pillbar span{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--muted);padding:8px 0;border-radius:99px}
+  .pillbar span.on{background:var(--ink);color:var(--surface)}
+  .grain{background-image:radial-gradient(rgba(60,35,10,.08) .7px,transparent 1.1px),radial-gradient(rgba(60,35,10,.06) .6px,transparent 1px);
+    background-size:9px 11px,13px 7px;background-position:0 0,4px 5px}
+
+  /* a stamp: the photo with its perforated edge, the day number and the mood dot, and the postmark once sealed */
+  .st{position:relative;flex:none}
+  .st .paper{position:absolute;inset:0;filter:drop-shadow(0 2px 2.5px rgba(60,35,10,.32))}
+  .st .perf{position:absolute;inset:0;overflow:hidden}
+  .st .perf svg{position:absolute;inset:0;width:100%;height:100%}
+  .st .no{position:absolute;color:#fff;font-family:var(--serif);font-weight:700;text-shadow:0 0 6px rgba(0,0,0,.5)}
+  .st .md{position:absolute;border-radius:50%;border:2px solid #fff}
+  .st .pm{position:absolute;pointer-events:none}
+
+  /* today */
+  .sw{display:flex;gap:6px;padding:10px 16px 0}
+  .sw div{flex:1;background:var(--surface);border-radius:14px;padding:8px 0;display:flex;flex-direction:column;align-items:center;font-size:13px;font-weight:700}
+  .sw div.on{background:var(--ink);color:var(--surface)}
+  .sw b{width:6px;height:6px;border-radius:50%;margin-top:4px;background:var(--green)}
+  .sw .on b{background:var(--surface)}
+  .env{margin:0 16px;height:268px;border-radius:20px;background-color:var(--page);border:1px solid var(--line);position:relative;display:flex;align-items:center;justify-content:center}
+  .env .cap{position:absolute;left:16px;bottom:12px;width:190px}
+  .env .cap .kick{font-size:11.5px;letter-spacing:1.3px}
+  .env .cap p{font:italic 600 14px var(--serif);color:var(--ink);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .region{position:absolute;right:14px;bottom:11px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 8px;display:flex;align-items:center;gap:5px}
+  .region i{width:8px;height:8px;border-radius:50%;background:#1E1B18}
+  .region span{font-size:11px;font-weight:700;letter-spacing:1.1px;color:var(--muted)}
+  .strip{display:flex;gap:10px;align-items:center;padding:12px 16px 0}
+  .slot{width:62px;height:72px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .slot.on{background:var(--accSoft);border:1.5px solid var(--acc)}
+  .dash{border:1.5px dashed var(--line);border-radius:10px;flex-direction:column;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .dash b{font:600 20px var(--serif);color:var(--ink);line-height:1}
+  .place{display:flex;justify-content:center;padding-top:6px}
+  .place div{background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:8px 14px;font-size:14px;font-weight:700;display:flex;gap:6px;align-items:center}
+  .quiet{display:flex;justify-content:center;gap:4px;padding:2px 0}
+  .quiet span{font-size:14px;font-weight:700;color:var(--acc);padding:10px 12px}
+  .steps{margin:14px 16px 0;background:var(--surface);border-radius:22px}
+  .step{display:flex;align-items:center;padding:16px 18px}
+  .step .lead{width:24px;display:flex;justify-content:center;font-size:18px;font-weight:700;color:var(--acc)}
+  .step .v{font-size:16px;margin-top:3px;line-height:21px}
+  .step .v.it{font:italic 600 17px/22px var(--serif)}
+  .step .chev{font-size:24px;font-weight:700;color:var(--muted);margin-left:10px}
+  .stepline{height:1px;background:var(--line);margin-left:56px}
+  .seal{margin:18px 16px 0;height:54px;border-radius:20px;background:var(--accSoft);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800}
+
+  /* the postmark sheet */
+  .scrim{position:absolute;inset:0;background:rgba(31,26,22,.6)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;top:118px;background:var(--bg);border-radius:28px 28px 0 0;padding-top:10px}
+  .handle{width:36px;height:4px;border-radius:2px;background:rgba(59,42,26,.35);margin:0 auto 18px}
+  .chips{display:flex;gap:8px;padding:0 16px;overflow:hidden}
+  .ink{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:7px 12px;font-size:14px;font-weight:500;white-space:nowrap}
+  .ink.on{border:2px solid #1E1B18;background:var(--accSoft)}
+  .ink i{width:12px;height:12px;border-radius:50%}
+  .sec{display:flex;align-items:center;padding:22px 20px 10px}
+  .pmc{margin:0 16px;background:var(--surface);border-radius:18px;padding:6px 16px}
+  .r1{display:flex;align-items:center;padding:10px 0}
+  .r1+.r1{border-top:1px solid var(--line)}
+  .r1 .g{width:30px;font-size:18px;font-weight:600;color:var(--acc)}
+  .r1 .b{font-size:13.5px;font-weight:600}
+  .r1 .s{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .r1 .src{font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--muted)}
+  .sw2{width:11px;height:11px;border-radius:50%;border:1px solid var(--line)}
+  .done{margin:18px 16px 0;height:50px;border-radius:20px;background:var(--ink);color:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+
+  /* journal */
+  .month{display:flex;align-items:flex-end;padding:18px 14px 8px 22px}
+  .nav{width:36px;height:36px;border-radius:99px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:6px}
+  .cal{margin:0 16px;background:var(--surface);border-radius:18px;padding:12px 8px}
+  .wk{display:flex}
+  .wk span{flex:1;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.8px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px 4px;margin-top:8px}
+  .cell{aspect-ratio:.82;border-radius:8px;position:relative;display:flex;align-items:center;justify-content:center}
+  .cell .n{font:600 14px var(--serif)}
+  .cell .badge{position:absolute;right:1px;top:1px;background:var(--acc);color:#fff;font-size:10.5px;font-weight:700;border-radius:99px;padding:0 4px;line-height:15px}
+  .cell .bar{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:99px}
+  .cell .qd{position:absolute;bottom:9px;width:4px;height:4px;border-radius:99px;background:var(--muted)}
+
+  /* collections */
+  .cchips{display:flex;gap:6px;padding:0 16px;overflow:hidden}
+  .cchips span{background:var(--surface);border-radius:99px;padding:7px 12px;font-size:14px;font-weight:600;white-space:nowrap}
+  .cchips span.on{background:var(--acc);color:#fff;font-weight:700}
+  .coll{margin:5px 16px;background:var(--page);border-radius:16px;padding:14px;display:flex;align-items:center}
+  .coll .cv{width:70px;height:86px;display:flex;align-items:center;justify-content:center;flex:none;margin-right:14px}
+  .tt{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:1.6px;color:var(--muted)}
+  .tt i{width:8px;height:8px;border-radius:50%}
+  .coll h3{font:600 20px var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .newc{margin:12px 16px;border:1.5px solid var(--muted);border-radius:99px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:600}
+
+  /* insights */
+  .sum{margin:0 16px;background:var(--surface);border-radius:18px;padding:14px 0;display:flex}
+  .sum div{flex:1;text-align:center}
+  .sum b{display:block;font:600 22px var(--serif)}
+  .sum span{font-size:12px;color:var(--muted)}
+  .seg{font-size:13.5px;font-weight:600;color:var(--muted);padding:5px 10px;border-radius:99px}
+  .seg.on{background:var(--accSoft);color:var(--acc);font-weight:700}
+  .mix{display:flex;height:10px;border-radius:99px;overflow:hidden;margin-top:12px}
+  .link{background:rgba(220,195,156,.55);border-radius:14px;padding:12px;margin:4px 0;display:flex;align-items:center}
+  .link .g{width:30px;font-size:20px;color:var(--acc)}
+  .lv{display:flex;align-items:center;gap:3px;margin-top:4px}
+  .lv i{width:14px;height:4px;border-radius:2px;background:var(--line)}
+  .lv i.on{background:var(--acc)}
+</style>
+</head>
+<body>
+<svg class="defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="gSunset" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6CF7A"/><stop offset=".33" stop-color="#EE8A5C"/><stop offset=".52" stop-color="#B85A78"/><stop offset=".6" stop-color="#6A4C8C"/></linearGradient>
+    <linearGradient id="gSeaW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#46659A"/><stop offset="1" stop-color="#1F3260"/></linearGradient>
+    <linearGradient id="gNight" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#182244"/><stop offset="1" stop-color="#3E5088"/></linearGradient>
+    <linearGradient id="gLeaf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4D488"/><stop offset="1" stop-color="#E39548"/></linearGradient>
+    <linearGradient id="gTatra" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93BEE2"/><stop offset=".6" stop-color="#E6F0F7"/></linearGradient>
+    <linearGradient id="gRain" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5F7190"/><stop offset=".7" stop-color="#A9B6C6"/></linearGradient>
+    <linearGradient id="gMeadow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#AFD8F0"/><stop offset=".6" stop-color="#EEF7FB"/></linearGradient>
+    <linearGradient id="gLake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3C6B6"/><stop offset=".55" stop-color="#D3DCEC"/></linearGradient>
+    <linearGradient id="gKrak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C386B"/><stop offset=".55" stop-color="#9B6C8A"/><stop offset=".85" stop-color="#EDA27A"/></linearGradient>
+    <!-- patchy ink: every hit is pressed a little differently -->
+    <filter id="wear" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75" result="m"/>
+      <feComposite in="SourceGraphic" in2="m" operator="in"/>
+    </filter>
+  </defs>
+</svg>
+<div id="app"></div>
+<script>
+const K = { ink: '#1E1B18', red: '#C8322F', carmine: '#9B1B30' };
+const MOOD = ['#6B4FBF', '#8467C9', '#A08DCF', '#9EA6AF', '#7DB2DB', '#4E97D6', '#2F7FD1'];
+const MOOD_NAME = ['Very Unpleasant', 'Unpleasant', 'Slightly Unpleasant', 'Neutral', 'Slightly Pleasant', 'Pleasant', 'Very Pleasant'];
+
+// ---- the photos inside the stamps: drawn scenes, 100 × 125 ----
+function trees(y, n, c) {
+  let s = '';
+  for (let i = 0; i < n; i++) { const x = i * (100 / (n - 1)) + (i % 2 ? 2 : -2), h = 9 + (i * 7) % 6; s += `<path d="M${x} ${y - h}L${x + 4} ${y}H${x - 4}Z" fill="${c}"/>`; }
+  return s;
+}
+const SCENES = {
+  sea: () => `<rect width="100" height="125" fill="url(#gSunset)"/><circle cx="50" cy="66" r="15" fill="#FFE3A3"/>
+    <rect y="72" width="100" height="53" fill="url(#gSeaW)"/>
+    <g fill="#FFD58A" opacity=".8"><rect x="34" y="76" width="32" height="2.2" rx="1"/><rect x="39" y="82" width="22" height="2" rx="1"/><rect x="43" y="89" width="14" height="1.8" rx=".9"/><rect x="46" y="97" width="8" height="1.5" rx=".8"/></g>
+    <path d="M0 110Q25 103 50 110T100 110V125H0Z" fill="#14234A" opacity=".55"/>`,
+  night: (m = MOOD[5]) => `<rect width="100" height="125" fill="url(#gNight)"/>
+    <g fill="#fff" opacity=".85"><circle cx="14" cy="18" r=".8"/><circle cx="30" cy="9" r=".6"/><circle cx="44" cy="22" r=".7"/><circle cx="22" cy="40" r=".6"/><circle cx="88" cy="50" r=".7"/><circle cx="55" cy="44" r=".5"/><circle cx="8" cy="58" r=".6"/><circle cx="92" cy="12" r=".6"/></g>
+    <circle cx="72" cy="28" r="10" fill="#F4EBC8"/><circle cx="66.5" cy="25" r="9.6" fill="#1F2A51"/>
+    <path d="M0 86Q22 68 45 82T100 76V125H0Z" fill="${m}" opacity=".7"/><path d="M0 99Q30 85 58 97T100 93V125H0Z" fill="${m}"/>
+    <path d="M0 111Q40 101 100 109V125H0Z" fill="#17213F" opacity=".55"/>`,
+  leaves: () => `<rect width="100" height="125" fill="url(#gLeaf)"/>
+    <rect y="96" width="100" height="29" fill="#B8662E"/><path d="M36 125Q47 104 49 96H55Q57 104 68 125Z" fill="#E9B878" opacity=".75"/>
+    <rect x="47" y="46" width="6" height="52" fill="#5A3A22"/><path d="M50 70L38 56M52 62L64 50" stroke="#5A3A22" stroke-width="2.4"/>
+    <circle cx="50" cy="40" r="23" fill="#D4612B"/><circle cx="33" cy="51" r="14" fill="#C24B22"/><circle cx="67" cy="49" r="15" fill="#E58A2E"/><circle cx="51" cy="27" r="13" fill="#EDA53A"/>
+    <g fill="#E0702C"><ellipse cx="20" cy="80" rx="2.6" ry="1.4" transform="rotate(30 20 80)"/><ellipse cx="78" cy="74" rx="2.6" ry="1.4" transform="rotate(-25 78 74)"/><ellipse cx="66" cy="88" rx="2.4" ry="1.3"/></g>
+    <g fill="#F2A63C"><ellipse cx="14" cy="108" rx="3" ry="1.5"/><ellipse cx="84" cy="114" rx="3" ry="1.5" transform="rotate(20 84 114)"/><ellipse cx="28" cy="118" rx="2.6" ry="1.3"/><ellipse cx="74" cy="102" rx="2.4" ry="1.2"/></g>`,
+  tatra: () => `<rect width="100" height="125" fill="url(#gTatra)"/>
+    <path d="M0 72L18 50L28 60L44 30L58 54L70 41L86 62L100 52V125H0Z" fill="#8EA2B8"/>
+    <path d="M37.5 42L44 30L51 43L47 40L43 44L40 41Z" fill="#F5F8FB"/><path d="M66 45L70 41L75 47L72 45L69 47Z" fill="#F5F8FB"/>
+    <path d="M0 90L20 68L36 82L56 64L78 84L100 72V125H0Z" fill="#5D7288"/>
+    <rect y="100" width="100" height="25" fill="#3F6B4F"/>${trees(103, 12, '#244B39')}${trees(114, 9, '#1D3F30')}`,
+  tram: () => `<rect width="100" height="125" fill="url(#gRain)"/>
+    <g fill="#4B5868"><rect x="0" y="38" width="22" height="62"/><rect x="20" y="28" width="26" height="72"/><rect x="44" y="46" width="20" height="54"/><rect x="62" y="32" width="24" height="68"/><rect x="84" y="42" width="16" height="58"/></g>
+    <g fill="#F5D58A" opacity=".9"><rect x="5" y="46" width="4" height="5"/><rect x="13" y="56" width="4" height="5"/><rect x="25" y="36" width="4" height="5"/><rect x="35" y="48" width="4" height="5"/><rect x="49" y="54" width="4" height="5"/><rect x="67" y="40" width="4" height="5"/><rect x="77" y="52" width="4" height="5"/><rect x="89" y="50" width="4" height="5"/></g>
+    <rect y="94" width="100" height="31" fill="#38424F"/>
+    <rect x="12" y="68" width="76" height="27" rx="5" fill="#F2C230"/><rect x="12" y="87" width="76" height="4" fill="#C8322F"/>
+    <g fill="#CFE3EE"><rect x="17" y="72" width="11" height="9" rx="1.5"/><rect x="31" y="72" width="11" height="9" rx="1.5"/><rect x="45" y="72" width="11" height="9" rx="1.5"/><rect x="59" y="72" width="11" height="9" rx="1.5"/><rect x="73" y="72" width="10" height="9" rx="1.5"/></g>
+    <path d="M40 68L48 58H60" stroke="#2B323C" stroke-width="1.2" fill="none"/><path d="M0 57H100" stroke="#2B323C" stroke-width=".5"/>
+    <g fill="#F2C230" opacity=".28"><rect x="14" y="100" width="72" height="3"/><rect x="20" y="106" width="60" height="2"/></g>
+    <g stroke="#fff" stroke-width=".5" opacity=".4"><path d="M8 10l-3 9M30 20l-3 9M52 8l-3 9M74 18l-3 9M92 6l-3 9M18 34l-3 9M64 30l-3 9M86 36l-3 9"/></g>`,
+  coffee: () => `<rect width="100" height="125" fill="#B47A49"/>
+    <g stroke="#9E6A3D" stroke-width="1"><path d="M0 22H100M0 48H100M0 74H100M0 100H100"/></g>
+    <ellipse cx="52" cy="66" rx="36" ry="35" fill="#7A5232" opacity=".35"/><circle cx="50" cy="62" r="34" fill="#F3ECE1"/>
+    <rect x="70" y="56" width="18" height="8" rx="4" fill="#fff" transform="rotate(-20 72 60)"/>
+    <circle cx="50" cy="60" r="25" fill="#fff"/><circle cx="50" cy="60" r="20.5" fill="#8C5A35"/><circle cx="50" cy="60" r="18.5" fill="#6A4128"/>
+    <path d="M50 70C39 62 40 52 46.5 53C49 53.5 50 56 50 57C50 56 51 53.5 53.5 53C60 52 61 62 50 70Z" fill="#EAD5B6"/>
+    <circle cx="20" cy="108" r="3" fill="#5C3A22"/><circle cx="28" cy="112" r="2.6" fill="#5C3A22"/>`,
+  meadow: () => `<rect width="100" height="125" fill="url(#gMeadow)"/><circle cx="76" cy="24" r="9" fill="#FFF1BE"/>
+    <path d="M0 78Q50 66 100 76V125H0Z" fill="#9DBB6A"/><path d="M0 92Q40 82 100 90V125H0Z" fill="#E8C65C"/><path d="M0 106Q50 98 100 106V125H0Z" fill="#D2A33C"/>
+    <rect x="28" y="56" width="4" height="26" fill="#5A3F28"/><circle cx="30" cy="50" r="12" fill="#5F8A4A"/><circle cx="23" cy="57" r="8" fill="#4F7A3E"/>
+    <g fill="#fff"><circle cx="62" cy="98" r="1.4"/><circle cx="72" cy="102" r="1.2"/><circle cx="54" cy="104" r="1.2"/><circle cx="82" cy="98" r="1.3"/></g>
+    <g stroke="#E58AA0" stroke-width="1.3"><path d="M58 30L64 38L70 30L76 38"/></g>`,
+  lake: () => `<rect width="100" height="125" fill="url(#gLake)"/><circle cx="34" cy="50" r="7" fill="#FCE9DC"/>
+    <path d="M0 74L16 56L30 66L48 46L64 64L80 52L100 66V78H0Z" fill="#8D9CB7"/>
+    <rect y="78" width="100" height="47" fill="#B6C9E1"/><path d="M0 78L16 94L30 86L48 104L64 88L80 98L100 88V78Z" fill="#8D9CB7" opacity=".28"/>
+    <g fill="#fff" opacity=".45"><rect x="-4" y="72" width="60" height="5" rx="2.5"/><rect x="40" y="80" width="70" height="4" rx="2"/></g>
+    <rect x="30" y="98" width="40" height="1.4" fill="#fff" opacity=".6"/>`,
+  krakow: () => `<rect width="100" height="125" fill="url(#gKrak)"/>
+    <g fill="#2A2440"><rect x="28" y="34" width="11" height="64"/><path d="M28 34L33.5 14L39 34Z"/><rect x="33" y="8" width="1" height="7"/>
+    <rect x="43" y="46" width="10" height="52"/><path d="M43 46Q48 34 53 46Z"/><rect x="24" y="62" width="34" height="36"/>
+    <rect x="58" y="72" width="42" height="26"/><rect x="0" y="80" width="26" height="18"/></g>
+    <g fill="#EDA27A" opacity=".55"><path d="M62 84a3 3 0 0 1 6 0v8h-6zM71 84a3 3 0 0 1 6 0v8h-6zM80 84a3 3 0 0 1 6 0v8h-6zM89 84a3 3 0 0 1 6 0v8h-6z"/></g>
+    <rect y="98" width="100" height="27" fill="#3A3150"/>
+    <g fill="#FFD27A"><circle cx="10" cy="96" r="1.4"/><circle cx="64" cy="70" r="1"/><circle cx="96" cy="96" r="1.4"/><circle cx="33" cy="50" r=".9"/></g>
+    <g fill="#FFD27A" opacity=".25"><rect x="6" y="104" width="8" height="2" rx="1"/><rect x="90" y="106" width="10" height="2" rx="1"/></g>`,
+};
+function scene(name, mood) {
+  return `<svg viewBox="0 0 100 125" preserveAspectRatio="xMidYMid slice">${SCENES[name](mood)}</svg>`;
+}
+
+// ---- the Poczta Polska datownik and the wavy cancel lines ----
+let uid = 0;
+function datownik(office, code, date, ink) {
+  const id = 'pm' + (uid++);
+  return `<svg viewBox="0 0 100 100" filter="url(#wear)">
+    <defs><path id="${id}t" d="M19 50A31 31 0 0 1 81 50"/><path id="${id}b" d="M17 52A33 33 0 0 0 83 52"/></defs>
+    <g fill="none" stroke="${ink}" stroke-width="2.8"><circle cx="50" cy="50" r="45"/><path d="M5 40H95M5 61H95"/></g>
+    <g fill="${ink}" font-family="Roboto,Arial,sans-serif" font-weight="700" text-anchor="middle">
+      <text font-size="12.5" letter-spacing="1.4"><textPath href="#${id}t" startOffset="50%">${office}</textPath></text>
+      <text font-size="11.5" letter-spacing="1.6"><textPath href="#${id}b" startOffset="50%">${code}</textPath></text>
+      <text x="50" y="55.5" font-size="13" letter-spacing=".6">${date}</text>
+    </g></svg>`;
+}
+function cancels(ink) {
+  let p = '';
+  for (let i = 0; i < 5; i++) { const y = 6 + i * 9; p += `<path d="M0 ${y}C10 ${y - 5} 20 ${y - 5} 30 ${y}S50 ${y + 5} 60 ${y}S80 ${y - 5} 90 ${y}S110 ${y + 5} 120 ${y}"/>`; }
+  return `<svg viewBox="0 0 120 50" filter="url(#wear)"><g fill="none" stroke="${ink}" stroke-width="2.6" stroke-linecap="round">${p}</g></svg>`;
+}
+
+/** A stamp of width w (portrait, 4:5), as StampView draws it. seal: [office, code, date] adds the postmark. */
+function stamp({ s, w, doy, mood, rot = 0, seal, ink = K.ink, sky }) {
+  const h = w * 1.25, small = w < 110;
+  const r = Math.max(.9, w * .03), step = Math.max(3, w * .082), pad = r + .8;
+  const mask = `linear-gradient(#000 0 0) content-box,radial-gradient(circle ${r}px at 50% 50%,#0000 96%,#000) ${-step / 2}px ${-step / 2}px/${step}px ${step}px round`;
+  const no = w >= 30 ? `<span class="no" style="left:${small ? 7 : 13}px;top:${small ? 5 : 10}px;font-size:${small ? (w < 45 ? 8.5 : 10.5) : 16}px">${doy}</span>` : '';
+  const ds = small ? (w < 45 ? 6 : 7) : 11, dp = small ? (w < 45 ? 5 : 7) : 13;
+  const dot = mood != null ? `<span class="md" style="right:${dp}px;top:${dp}px;width:${ds}px;height:${ds}px;background:${MOOD[mood]};border-width:${small ? 1.5 : 2}px"></span>` : '';
+  const pm = seal && w >= 50 ? `
+    <div class="pm" style="left:${-w * .14}px;top:${h * .05}px;width:${w * .78}px;height:${w * .78 * 50 / 120}px;opacity:.8">${cancels(ink)}</div>
+    <div class="pm" style="left:${w * .6}px;top:${h * .36}px;width:${w * .68}px;height:${w * .68}px;opacity:.84;transform:rotate(-14deg)">${datownik(...seal, ink)}</div>` : '';
+  return `<div class="st" style="width:${w}px;height:${h}px;transform:rotate(${rot}deg)">
+    <div class="paper"><div class="perf" style="padding:${pad}px;-webkit-mask:${mask};mask:${mask}">${scene(s, sky)}</div></div>${no}${dot}${pm}</div>`;
+}
+
+// ---- chrome ----
+const ICON = {
+  today: '<rect x="5" y="4" width="14" height="17" rx="1.5" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="3.2"/>',
+  journal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M9 3v4M15 3v4"/><rect x="7" y="12" width="3" height="3.5"/><rect x="13.5" y="12" width="3" height="3.5"/>',
+  collections: '<rect x="7" y="3" width="13" height="15" rx="1.5" stroke-dasharray="2 1.6"/><path d="M4 7v13.5c0 .3.2.5.5.5H16"/>',
+  insights: '<path d="M4 19h16M6 16c2-6 4-9 6-6s4 1 6-5"/>',
+  profile: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4-5.3 7.5-5.3s6.2 1.7 7.5 5.3"/>',
+};
+function chrome(tab, body) {
+  const tabs = ['today', 'journal', 'collections', 'insights', 'profile'].map(t =>
+    `<div class="tab${t === tab ? ' on' : ''}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON[t]}</svg>${t[0].toUpperCase() + t.slice(1)}<i></i></div>`).join('');
+  return `<div class="sb"><span>21:14</span><span class="ic">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5L.5 3.6a10.6 10.6 0 0 1 15 0z"/></svg>
+      <svg width="15" height="12" viewBox="0 0 15 12" fill="currentColor"><path d="M14.5 .5v11h-14z"/></svg>
+      <svg width="22" height="12" viewBox="0 0 22 12" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="11" rx="2.5"/><rect x="2.5" y="2.5" width="11" height="7" rx="1" fill="currentColor" stroke="none"/><path d="M20.5 4v4" stroke-width="1.5"/></svg>
+    </span></div><div class="main">${body}</div><div class="tabs">${tabs}</div>`;
+}
+const header = (kick, plain, em) => `<div class="hdr"><div class="kick">${kick}</div><div class="title">${plain}<em>${em}</em></div></div>`;
+
+// ---- the made-up journal: 4 November 2026 in Gliwice ----
+const TODAY = { doy: 308, mood: 5, stamps: ['leaves', 'coffee'] };
+const SEAL = ['GLIWICE 1', '44-100', '04.11.26-21'];
+
+function todayPage() {
+  const sw = [['Sun 1'], ['Mon 2'], ['Yesterday'], ['Today', 1]].map(([l, on]) => `<div class="${on ? 'on' : ''}">${l}<b></b></div>`).join('');
+  const slots = TODAY.stamps.map((s, i) => `<div class="slot${i === 0 ? ' on' : ''}">${stamp({ s, w: 40, doy: TODAY.doy, mood: TODAY.mood })}</div>`).join('');
+  return `<div class="sw">${sw}</div>
+    <div style="padding:14px 18px 8px 22px"><div class="kick">№308 · Wednesday · 4 Nov 2026</div><div class="title" style="margin-top:6px;line-height:33px">Today, <em>sealed</em></div></div>
+    <div class="env grain"><div style="padding-bottom:16px;margin-right:22px">${stamp({ s: 'leaves', w: 160, doy: 308, mood: 5, rot: -1.5, seal: SEAL })}</div>
+      <div class="cap"><div class="kick">№308 · 4 Nov 2026</div><p>Leaves everywhere, tea at Ola's after work.</p></div>
+      <div class="region"><i></i><span>SILESIA</span></div></div>
+    <div class="strip">${slots}<div class="slot dash"><b>＋</b>Add</div>
+      <div class="grow"><div style="font-size:13.5px;font-weight:700">2 of 3 stamps</div><div class="small" style="font-size:12.5px">Tap one to change it</div></div></div>
+    <div class="place"><div><span style="font-size:13px">📍</span>Gliwice<span style="color:var(--acc);font-weight:600">&nbsp;✎</span></div></div>
+    <div class="quiet"><span>Re-crop</span><span>Replace</span><span style="color:#B4483A">Remove</span></div>
+    <div class="steps">
+      <div class="step"><div class="lead"><span style="width:16px;height:16px;border-radius:50%;background:${MOOD[5]}"></span></div><div class="grow" style="margin-left:14px"><div class="kick">State of mind</div><div class="v">Pleasant · Calm, Grateful</div></div><span class="chev">›</span></div>
+      <div class="stepline"></div>
+      <div class="step"><div class="lead">✎</div><div class="grow" style="margin-left:14px"><div class="kick">One line</div><div class="v it">Leaves everywhere, tea at Ola's after work.</div></div><span class="chev">›</span></div>
+      <div class="stepline"></div>
+      <div class="step"><div class="lead">✉</div><div class="grow" style="margin-left:14px"><div class="kick">The postmark</div><div class="v">☁ 9°  ·  ♪ 74 min  ·  ¤ 46,20 zł  ·  ✶ Reach out №7</div></div><span class="chev">›</span></div>
+    </div>
+    <div class="seal">Sealed ✓ · change anything to edit</div>`;
+}
+
+const SCREENS = {
+  today: () => chrome('today', todayPage()),
+
+  postmark: () => chrome('today', todayPage() + `<div class="scrim"></div>
+    <div class="sheet"><div class="handle"></div>
+      <div style="padding:0 18px 12px 22px"><div class="title" style="font-size:26px;line-height:30px;margin:0">The postmark</div><div class="small" style="margin-top:3px">as it was stamped</div></div>
+      <div class="sec" style="padding-top:8px"><span class="kick grow">Ink</span><span class="small" style="font-size:12.5px">Official</span></div>
+      <div class="chips"><span class="ink on"><i style="background:${K.ink}"></i>Official · Poczta Polska</span><span class="ink"><i style="background:${K.red}"></i>Post red</span><span class="ink"><i style="background:${K.carmine}"></i>Carmine</span></div>
+      <div class="small" style="padding:8px 22px 18px">Black, the way the post office itself would stamp it.</div>
+      <div class="pmc">
+        <div class="r1"><span class="g">✉</span><div class="grow"><div class="b">GLIWICE 1 · 44-100</div><div class="s">04.11.26 · hour 21</div></div><span class="src">PROFILE</span></div>
+        <div class="r1"><span class="g">☾</span><div class="grow"><div class="b">Waning crescent · 34% lit</div><div class="s">Calculated, exact</div></div><span class="src">CAELUM</span></div>
+        <div class="r1"><span class="g">☁</span><div class="grow"><div class="b">Cloudy · 9° / 4°</div><div class="s">13 models · models agree</div></div><span class="src">CONSENSUS</span></div>
+        <div class="r1"><span class="g">♪</span><div class="grow"><div class="b">Midnight City · M83</div><div class="s">74 min listened</div></div><span class="src">FIDELIS</span></div>
+        <div class="r1"><span class="g">¤</span><div class="grow"><div class="b">46,20 zł spent</div><div class="s">safe to spend 82 zł a day</div></div><span class="src">KALENDAE</span></div>
+        <div class="r1"><span class="g">✶</span><div class="grow"><div class="b">Reach out · №7</div><div class="s"><i class="sw2" style="background:#E0A43A"></i><i class="sw2" style="background:#2F8C8A"></i>Amber · 4 systems agree</div></div><span class="src">AUGUR</span></div>
+      </div>
+      <div class="done">Done</div>
+    </div>`),
+
+  journal: () => {
+    // October 2026: Sunday first, so 27–30 September lead in
+    const quiet = [6, 18, 28], trip = [12, 13, 14, 15], wed = 24;
+    const pics = ['coffee', 'tram', 'leaves', 'lake', 'sea', 'night', 'meadow', 'coffee', 'leaves', 'tram', 'lake'];
+    const moods = [4, 5, 3, 5, 6, 0, 4, 3, 2, 4, 5, 5, 6, 6, 5, 4, 3, 0, 4, 5, 2, 3, 4, 6, 5, 4, 4, 0, 5, 5, 4];
+    const many = { 3: 2, 12: 3, 13: 2, 14: 2, 24: 3, 30: 2 };
+    let cells = [27, 28, 29, 30].map(d => `<div class="cell"><span class="n" style="color:var(--line)">${d}</span></div>`).join('');
+    for (let d = 1; d <= 31; d++) {
+      const bar = trip.includes(d) ? `<i class="bar" style="background:${K.red}"></i>` : d === wed ? `<i class="bar" style="background:${K.carmine}"></i>` : '';
+      if (quiet.includes(d)) { cells += `<div class="cell"><span class="n">${d}</span><i class="qd"></i>${bar}</div>`; continue; }
+      const s = trip.includes(d) ? (d % 2 ? 'krakow' : 'night') : d === wed ? 'meadow' : pics[d % pics.length];
+      cells += `<div class="cell">${stamp({ s, w: 30, doy: 273 + d, mood: moods[d - 1], sky: MOOD[moods[d - 1]] })}${many[d] ? `<span class="badge">${many[d]}</span>` : ''}${bar}</div>`;
+    }
+    return chrome('journal', header('64 stamps · 41 days', 'The ', 'journal') + `
+      <div class="pillbar"><span class="on">Calendar</span><span>Pages</span></div>
+      <div class="month"><div class="grow"><div class="row" style="align-items:flex-start"><span class="serif" style="font-size:44px;line-height:44px;font-weight:600">28</span><span class="kick" style="font-size:11px;margin:6px 0 0 4px">Days · 2026</span></div>
+        <div class="serif" style="font-size:20px;font-style:italic;color:var(--acc)">October</div></div><span class="nav">‹</span><span class="nav">›</span></div>
+      <div class="cal"><div class="wk">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span>${d.toUpperCase()}</span>`).join('')}</div><div class="grid">${cells}</div></div>
+      <div class="small" style="padding:12px 22px">Coloured bars mark trips and events, in their postmark ink. Tap any day to open its stamps.</div>`);
+  },
+
+  collections: () => {
+    const cs = [
+      ['krakow', 5, K.red, 'Trip', 'Kraków', '12 – 15 Oct 2026 · Lesser Poland', '11 stamps · postmarked KRAKÓW 1', 286],
+      ['meadow', 6, K.carmine, 'Event', "Ola's wedding", '24 Oct 2026', '3 stamps', 297],
+      ['tatra', 6, K.red, 'Trip', 'Zakopane', '21 – 24 Aug 2026 · Lesser Poland', '9 stamps · postmarked ZAKOPANE 1', 234],
+      ['lake', 4, K.ink, 'Anniversary', 'First day at the studio', 'Every 2 March · 2 years so far', '4 stamps', 61],
+      ['coffee', 5, K.ink, 'Theme', 'Coffee', '7 hand-picked stamps', "Add from any stamp's page", 302],
+    ].map(([s, m, ink, t, n, l1, l2, doy]) => `<div class="coll"><div class="cv">${stamp({ s, w: 64, doy, mood: m, rot: -2 })}</div>
+      <div class="grow"><div class="tt"><i style="background:${ink}"></i>${t.toUpperCase()}</div><h3>${n}</h3><div class="small">${l1}</div><div class="small">${l2}</div></div></div>`).join('');
+    return chrome('collections', header('5 collections', 'Your ', 'collections') + `
+      <div class="cchips"><span class="on">All 5</span><span>Trips 2</span><span>Events 1</span><span>Anniversaries 1</span><span>Themes 1</span></div>
+      <div style="height:10px"></div>${cs}<div class="newc">＋ New collection</div>`);
+  },
+
+  insights: () => {
+    const moods = [4, 5, 3, 5, 6, null, 4, 3, 2, 4, 5, 5, 6, 6, 5, 4, 3, null, 4, 5, 2, 3, 4, 6, 5, 4, 4, null, 5, 5, 4];
+    const W = 232, H = 150, pad = 6, cw = W / moods.length, rr = Math.min(5, cw * .38);
+    const y = m => H - pad - (H - 2 * pad) * m / 6;
+    let g = '';
+    for (let m = 0; m <= 6; m++) g += `<line x1="0" x2="${W}" y1="${y(m)}" y2="${y(m)}" stroke="rgba(70,45,20,.18)"/>`;
+    [11, 12, 13, 14].forEach(i => g += `<rect x="${cw * i + .5}" y="0" width="${cw - 1}" height="${H}" rx="2" fill="rgba(227,201,166,.6)"/>`);
+    moods.forEach((m, i) => { if (m == null) return; const x = cw * (i + .5); g += `<circle cx="${x}" cy="${y(m)}" r="${rr + 1.4}" fill="#fff"/><circle cx="${x}" cy="${y(m)}" r="${rr}" fill="${MOOD[m]}"/>`; });
+    const mix = [0, 0, 0, 0, 0, 0, 0]; moods.forEach(m => m != null && mix[m]++);
+    const labels = moods.map((_, i) => `<span style="flex:1;text-align:center">${[0, 7, 14, 21, 28].includes(i) ? i + 1 : ''}</span>`).join('');
+    const links = [
+      ['☀', 'Sunny days', 'Sunny days felt more pleasant', 3, 'clear', '+0.8'],
+      ['♪', 'Lots of music', 'Days with over an hour of music', 2, 'likely', '+0.5'],
+      ['¤', 'Within budget', 'Days you stayed under safe to spend', 2, 'likely', '+0.4'],
+      ['☾', 'Full moon', 'The three nights around it', 1, 'a hint', '≈'],
+    ].map(([gl, n, s, lv, lab, d]) => `<div class="link"><span class="g">${gl}</span><div class="grow"><div style="font-size:15px">${n}</div><div class="small">${s}</div>
+      <div class="lv">${[1, 2, 3].map(i => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}<span class="small" style="font-size:12px;margin-left:4px">${lab}</span></div></div>
+      <span style="font-size:15px;font-weight:700;color:${d === '≈' ? 'var(--muted)' : 'var(--green)'}">${d}</span></div>`).join('');
+    return chrome('insights', header('State of mind × your stamps', 'Your ', 'insights') + `
+      <div class="sum">${[[7, 'day streak'], [11, 'longest'], [64, 'stamps'], [9, 'places'], [1840, 'words']].map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join('')}</div>
+      <div class="row" style="padding:12px 22px"><span style="width:14px;height:14px;border-radius:50%;background:${MOOD[5]};margin-right:10px"></span><span style="color:var(--muted)">Mostly pleasant this month, a little up on September.</span></div>
+      <div class="card"><div class="row"><span class="kick grow">State of mind</span><span class="seg">Week</span><span class="seg on">Month</span><span class="seg">All</span></div>
+        <div class="row" style="margin-top:12px;align-items:stretch"><div style="display:flex;flex-direction:column;justify-content:space-between;font-size:11px;color:var(--muted);padding-right:6px;height:${H}px"><span>Very Pleasant</span><span>Neutral</span><span>Very Unpleasant</span></div>
+          <div class="grow"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg><div class="row" style="font-size:11px;color:var(--muted);margin-top:4px">${labels}</div></div></div>
+        <div class="mix">${mix.map((n, i) => n ? `<i style="flex:${n};background:${MOOD[i]}"></i>` : '').join('')}</div></div>
+      <div class="card"><div class="row" style="gap:6px;margin-bottom:8px"><span class="seg">Life factors</span><span class="seg">Feelings</span><span class="seg on">Connections</span></div>${links}</div>`);
+  },
+};
+
+const which = (location.search.match(/[?&]screen=(\w+)/) || [])[1] || 'today';
+document.getElementById('app').innerHTML = (SCREENS[which] || SCREENS.today)();
+</script>
+</body>
+</html>
