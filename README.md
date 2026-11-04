@@ -6,7 +6,7 @@
 
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
-> **Pre-release (0.8.0).** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
+> **Pre-release (0.9.0), Android only for now.** Today, the Journal, Collections, Insights, ten perforations, three shapes, six looks, backups and the sibling apps on the postmark are in.
 
 ---
 
@@ -44,7 +44,7 @@ Annales is a stamp journal. Each day you cut up to three stamps from your photos
 
 ## Getting started
 
-1. Open **[Releases](../../releases)** on your phone and download **annales-debug.apk** from **Latest debug build**.
+1. Open **[Releases](../../releases)** on your phone and download **Annales_v….apk** from the latest release.
 1. Open the file. If Android asks, allow your browser to **install unknown apps**.
 1. Open Annales and allow **notifications** for the evening reminder.
 1. In **Profile**, check your **post office** and **postcode** (Gliwice 1, 44-100 to start).
@@ -55,6 +55,10 @@ Updating: install the new APK over the old one. Your journal stays.
 
 Everything stays on your phone: the journal, the cropped photos and the stamps. Location is asked for only when you tap "Use where I am now", and only the town is kept. The internet is used for one thing only, the weather: Annales asks the free Open-Meteo forecast (the one Consensus Weather uses) for your post office's town and the day, and nothing about you goes with it. Fidelis, Kalendae and Augur share their daily summaries with Annales on the phone itself, never over the internet, and only to Annales. The only other thing that leaves the app is what you seal, into your own Photos, and backup files you save yourself.
 
+## License
+
+Released under the [MIT License](LICENSE).
+
 ---
 
 _Annales is Latin for yearly records: the Roman chronicles, kept year by year. It's a sibling to Consensus Weather, Hora, Caelum, Kalendae, Augur and Fidelis._
@@ -62,7 +66,7 @@ _Annales is Latin for yearly records: the Roman chronicles, kept year by year. I
 <details>
 <summary>For developers</summary>
 
-A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), with no other libraries. GitHub Actions builds a debug APK on every push to `main` and publishes it to the **latest-debug** pre-release.
+A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), with no other libraries. GitHub Actions builds a debug APK on every push to `main` and publishes it as a release, one per version.
 
 | Where | What it is |
 | --- | --- |
@@ -74,10 +78,10 @@ A native Android app in Kotlin and Jetpack Compose (Material 3, coroutines), wit
 | `ui/` | Today (`DayPage`), Journal, Collections and their form, Insights, the crop screen, the viewer, Profile and the six looks |
 | `tools/icon.js`, `tools/icon.html`, `tools/icon.sh` | Draw the icon and render every PNG in `icons/` and the launcher layers |
 | `tools/install.sh` | Waits for the build of your last push and installs it on the plugged-in phone |
-| `.github/workflows/android.yml` | Builds the APK and publishes it to the latest-debug release |
+| `.github/workflows/android.yml` | Builds the APK and publishes each version as a release |
 | `SHARING.md` | How Fidelis, Kalendae and Augur share a day with Annales: the address, who may ask, and every key |
 
-**Signing.** `annales-debug.keystore` is the family's debug key, so every build installs over the last one.
+**Signing.** Builds are signed with the family key. It never lives in git: GitHub builds read it from the `FAMILY_*` secrets, local builds from `~/.gradle/gradle.properties`. Every build installs over the last one.
 
 **Build and install:** push to `main`, then run `tools/install.sh`. **Icon:** edit `tools/icon.js`, then run `tools/icon.sh`.
 
