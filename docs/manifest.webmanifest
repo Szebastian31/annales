@@ -1,0 +1,16 @@
+{
+  "name": "Annales",
+  "short_name": "Annales",
+  "description": "A stamp a day: a photo or the day's sky, cut and postmarked into your journal.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#CDAE84",
+  "theme_color": "#CDAE84",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
