@@ -66,6 +66,8 @@ _Today · The postmark · Journal · Collections · Insights. Drawn from the app
 
 Updating: install the new APK over the old one. Your journal stays.
 
+**Or get updates automatically with Obtainium:** [Add Annales to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.annales.journal%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FSzebastian31%2Fannales%22%2C%22author%22%3A%22Szebastian31%22%2C%22name%22%3A%22Annales%22%7D)
+
 ## Privacy
 
 Everything stays on your phone: the journal, the cropped photos and the stamps. Location is asked for only when you tap "Use where I am now", and only the town is kept. The internet is used for one thing only, the weather: Annales asks the free Open-Meteo forecast (the one Consensus Weather uses) for your post office's town and the day, and nothing about you goes with it. Fidelis, Kalendae and Augur share their daily summaries with Annales on the phone itself, never over the internet, and only to Annales. The only other thing that leaves the app is what you seal, into your own Photos, and backup files you save yourself.
