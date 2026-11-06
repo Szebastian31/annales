@@ -6,15 +6,15 @@ const SR = {
   // Saved stamps keep a clear margin round the paper, so the cancels can hang off the edges.
   PL: 160, PR: 280, PT: 60, PB: 60,
   k: 800 / 150,
-  shapes: [['portrait', 'Portrait', [800, 1000]], ['square', 'Square', [900, 900]], ['wide', 'Wide', [1000, 820]]],
+  shapes: [['portrait', tr('Portrait'), [800, 1000]], ['square', tr('Square'), [900, 900]], ['wide', tr('Wide'), [1000, 820]]],
   size(shape) { return (this.shapes.find(s => s[0] === shape) || this.shapes[0])[2]; },
   shapeOf: (w, h) => (w > h ? 'wide' : w === h ? 'square' : 'portrait'),
   cuts: [
-    ['classic', 'Classic', 'round holes'], ['scallop', 'Scallop', 'big soft bites'],
-    ['pinhole', 'Pinhole', 'tiny, dense'], ['comb', 'Comb', 'square teeth'],
-    ['pinking', 'Pinking', 'zigzag shears'], ['wave', 'Wave', 'smooth ripple'],
-    ['rouletted', 'Rouletted', 'slit tear line'], ['deckle', 'Deckle', 'torn by hand'],
-    ['ticket', 'Ticket', 'notched stub'], ['sticker', 'Sticker', 'die-cut round'],
+    ['classic', tr('Classic'), tr('round holes')], ['scallop', tr('Scallop'), tr('big soft bites')],
+    ['pinhole', tr('Pinhole'), tr('tiny, dense')], ['comb', tr('Comb'), tr('square teeth')],
+    ['pinking', tr('Pinking'), tr('zigzag shears')], ['wave', tr('Wave'), tr('smooth ripple')],
+    ['rouletted', tr('Rouletted'), tr('slit tear line')], ['deckle', tr('Deckle'), tr('torn by hand')],
+    ['ticket', tr('Ticket'), tr('notched stub')], ['sticker', tr('Sticker'), tr('die-cut round')],
   ],
 };
 
@@ -283,7 +283,7 @@ function waves(c, ink) {
 
 /** The five photo filters, as 4 × 5 colour matrices built from the same CSS steps. */
 const Filters = {
-  all: [['natural', 'Natural'], ['print', 'Print'], ['faded', 'Faded'], ['dusk', 'Dusk'], ['mono', 'Mono']],
+  all: [['natural', tr('Natural')], ['print', tr('Print')], ['faded', tr('Faded')], ['dusk', tr('Dusk')], ['mono', tr('Mono')]],
   /** The same look as a CSS filter, for the live preview while framing. */
   cssOf: {
     natural: 'none', print: 'contrast(1.1) saturate(.88) sepia(.14)',

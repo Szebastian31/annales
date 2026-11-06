@@ -45,18 +45,18 @@ const Weather = {
 
   /** WMO code → a short name, and the sky stamp it matches. */
   describe(code) {
-    if (code === 0) return ['Clear', SKY.CLEAR];
-    if (code === 1) return ['Mostly clear', SKY.CLEAR];
-    if (code === 2) return ['Partly cloudy', SKY.PARTLY];
-    if (code === 3) return ['Overcast', SKY.CLOUDY];
-    if (code === 45 || code === 48) return ['Fog', SKY.FOG];
-    if (code >= 51 && code <= 57) return ['Drizzle', SKY.RAIN];
-    if (code >= 61 && code <= 67) return ['Rain', SKY.RAIN];
-    if (code >= 71 && code <= 77) return ['Snow', SKY.CLOUDY];
-    if (code >= 80 && code <= 82) return ['Showers', SKY.RAIN];
-    if (code === 85 || code === 86) return ['Snow showers', SKY.CLOUDY];
-    if (code >= 95 && code <= 99) return ['Thunderstorm', SKY.RAIN];
-    return ['Mixed', SKY.PARTLY];
+    if (code === 0) return [tr('Clear'), SKY.CLEAR];
+    if (code === 1) return [tr('Mostly clear'), SKY.CLEAR];
+    if (code === 2) return [tr('Partly cloudy'), SKY.PARTLY];
+    if (code === 3) return [tr('Overcast'), SKY.CLOUDY];
+    if (code === 45 || code === 48) return [tr('Fog'), SKY.FOG];
+    if (code >= 51 && code <= 57) return [tr('Drizzle'), SKY.RAIN];
+    if (code >= 61 && code <= 67) return [tr('Rain'), SKY.RAIN];
+    if (code >= 71 && code <= 77) return [tr('Snow'), SKY.CLOUDY];
+    if (code >= 80 && code <= 82) return [tr('Showers'), SKY.RAIN];
+    if (code === 85 || code === 86) return [tr('Snow showers'), SKY.CLOUDY];
+    if (code >= 95 && code <= 99) return [tr('Thunderstorm'), SKY.RAIN];
+    return [tr('Mixed'), SKY.PARTLY];
   },
 };
 
@@ -103,7 +103,7 @@ class Insights {
       const n = range === 'WEEK' ? 7 : 30, out = [];
       for (let back = n - 1; back >= 0; back--) {
         const date = D.plus(this.today, -back), dom = D.dom(date);
-        const label = range === 'WEEK' ? DAY_NAMES[D.dow(date) - 1].charAt(0) : (dom % 5 === 1 ? String(dom) : '');
+        const label = range === 'WEEK' ? (LANG === 'en' ? DAY_NAMES[D.dow(date) - 1].charAt(0) : lweekday(D.dow(date), 'narrow')) : (dom % 5 === 1 ? String(dom) : '');
         const f = this.felt.find(x => x.date === date);
         out.push({ label, moods: f ? [f.mood] : [], trip: this.onTrip(date) });
       }
@@ -139,10 +139,10 @@ class Insights {
   link(glyph, name, a, b, la, lb) {
     const diff = Insights.avg(a) - Insights.avg(b), n = Math.min(a.length, b.length);
     const level = n < 5 ? 0 : Math.abs(diff) < .4 ? 1 : n >= 15 && Math.abs(diff) >= .9 ? 3 : 2;
-    const sentence = level === 0 ? `Only ${n} day${n === 1 ? '' : 's'} so far in one group`
-      : level === 1 ? 'About the same either way'
-      : `About ${Math.abs(diff).toFixed(1)} steps ${diff > 0 ? 'more pleasant' : 'less pleasant'}`;
-    return { glyph, name, a, b, la, lb, diff, level, sentence, label: ['Too early to tell', 'No clear difference', 'Weak hint', 'Clear hint'][level] };
+    const sentence = level === 0 ? tn(n, 'Only {n} day so far in one group', 'Only {n} days so far in one group')
+      : level === 1 ? tr('About the same either way')
+      : diff > 0 ? tr('About {n} steps more pleasant', { n: Math.abs(diff).toFixed(1) }) : tr('About {n} steps less pleasant', { n: Math.abs(diff).toFixed(1) });
+    return { glyph, name, a, b, la, lb, diff, level, sentence, label: [tr('Too early to tell'), tr('No clear difference'), tr('Weak hint'), tr('Clear hint')][level] };
   }
 
   links() {
@@ -152,27 +152,28 @@ class Insights {
     const [full, other] = part(x => Moon.lit(x.date) > .9);
     const [people, noPeople] = part(x => ['Friends', 'Family', 'Partner'].some(t => x.factors.includes(t)));
     const [stamped, bare] = part(x => x.stamps.length >= 2);
+    const weekendDays = LANG === 'en' ? 'Sat · Sun' : `${lweekday(6, 'short')} · ${lweekday(7, 'short')}`;
     const out = [
-      this.link('✈', 'Trips', onTrip, home, 'On a trip', 'At home'),
-      this.link('♡', 'Your people', people, noPeople, 'Friends, family, partner', 'Other days'),
-      this.link('☕', 'Weekends', weekend, weekday, 'Sat · Sun', 'Weekdays'),
-      this.link('❏', 'Busy days', stamped, bare, '2–3 stamps', '0–1 stamp'),
-      this.link('☾', 'Full moon', full, other, 'Near full', 'Other nights'),
+      this.link('✈', tr('Trips'), onTrip, home, tr('On a trip'), tr('At home')),
+      this.link('♡', tr('Your people'), people, noPeople, tr('Friends, family, partner'), tr('Other days')),
+      this.link('☕', tr('Weekends'), weekend, weekday, weekendDays, tr('Weekdays')),
+      this.link('❏', tr('Busy days'), stamped, bare, tr('2–3 stamps'), tr('0–1 stamp')),
+      this.link('☾', tr('Full moon'), full, other, tr('Near full'), tr('Other nights')),
     ];
     // connections that need a sibling app's numbers: weather here, and music and money from days restored off Android
     const wx = this.felt.filter(x => x.extras['wx.code'] != null);
     const sunny = x => { const c = parseInt(x.extras['wx.code'], 10); return (Number.isNaN(c) ? 99 : c) <= 1; };
-    if (wx.length) out.push(this.link('☀', 'Sunny days', wx.filter(sunny), wx.filter(x => !sunny(x)), 'Clear sky', 'Cloud, rain, fog'));
+    if (wx.length) out.push(this.link('☀', tr('Sunny days'), wx.filter(sunny), wx.filter(x => !sunny(x)), tr('Clear sky'), tr('Cloud, rain, fog')));
     const mus = this.felt.filter(x => Number.isInteger(parseInt(x.extras['music.minutes'], 10)));
     if (mus.length) {
       const sorted = mus.map(x => parseInt(x.extras['music.minutes'], 10)).sort((a, b) => a - b), mid = sorted[Math.trunc(sorted.length / 2)];
-      out.push(this.link('♪', 'Lots of music', mus.filter(x => parseInt(x.extras['music.minutes'], 10) > mid),
-        mus.filter(x => !(parseInt(x.extras['music.minutes'], 10) > mid)), `Over ${mid} min`, `${mid} min or less`));
+      out.push(this.link('♪', tr('Lots of music'), mus.filter(x => parseInt(x.extras['music.minutes'], 10) > mid),
+        mus.filter(x => !(parseInt(x.extras['music.minutes'], 10) > mid)), tr('Over {n} min', { n: mid }), tr('{n} min or less', { n: mid })));
     }
     const money = this.felt.filter(x => x.extras['money.spentN'] != null && x.extras['money.safeN'] != null);
     if (money.length) {
       const ok = x => (parseFloat(x.extras['money.spentN']) || 0) <= (parseFloat(x.extras['money.safeN']) || 0);
-      out.push(this.link('¤', 'Within budget', money.filter(ok), money.filter(x => !ok(x)), 'Spent ≤ safe', 'Spent more'));
+      out.push(this.link('¤', tr('Within budget'), money.filter(ok), money.filter(x => !ok(x)), tr('Spent ≤ safe'), tr('Spent more')));
     }
     return out.sort((a, b) => b.level - a.level || Math.abs(b.diff) - Math.abs(a.diff));
   }
@@ -183,10 +184,11 @@ class Insights {
     const low = recent.filter(x => x.mood <= 2).length >= 3;
     const count = {};
     this.felt.filter(x => x.mood >= 5).forEach(x => x.factors.forEach(f => { count[f] = (count[f] || 0) + 1; }));
-    const top = Object.entries(count).sort((a, b) => b[1] - a[1]).slice(0, 2).map(e => e[0]);
-    if (low && top.length) return `A few heavier days lately. On your more pleasant days you often tagged ${top.join(' and ')}.`;
-    if (low) return 'A few heavier days lately. Be gentle with yourself.';
-    if (top.length) return `Your most pleasant days often involve ${top.join(' and ')}.`;
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1]).slice(0, 2).map(e => tr(e[0]));
+    const both = top.length > 1 ? tr('{a} and {b}', { a: top[0], b: top[1] }) : top[0];
+    if (low && top.length) return tr('A few heavier days lately. On your more pleasant days you often tagged {tags}.', { tags: both });
+    if (low) return tr('A few heavier days lately. Be gentle with yourself.');
+    if (top.length) return tr('Your most pleasant days often involve {tags}.', { tags: both });
     return null;
   }
 }

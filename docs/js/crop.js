@@ -9,7 +9,7 @@ async function openCrop(date, photo, replacing, place) {
   // drawn at the screen's pixel density, but always shown at the stage's own size
   const mask = h('canvas', { style: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } });
   const stage = h('div.stage', null, view, mask);
-  const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0, style: { flex: 1, marginLeft: '12px' } });
+  const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0, style: { flex: 1, marginInlineStart: '12px' } });
   const chipsShape = h('div.row', { style: { gap: '6px', padding: '0 16px 8px' } });
   const chipsFilter = h('div.hscroll', { style: { padding: '0 16px 14px' } });
 
@@ -107,13 +107,13 @@ async function openCrop(date, photo, replacing, place) {
 
   Layers.open('crop', () => [
     h('div.top', null,
-      h('button', { onclick: () => { close(); drop(photo); } }, 'Cancel'),
+      h('button', { onclick: () => { close(); drop(photo); } }, tr('Cancel')),
       h('div.grow.c', null,
-        h('div', { style: { fontSize: '12.5px', color: 'rgba(255,255,255,.7)' } }, 'Drag · pinch to resize'),
-        h('div.serif', { style: { fontSize: '18px' } }, 'Frame the memory')),
-      h('button.b', { style: { color: '#F2C9A0' }, onclick: done }, 'Done')),
+        h('div', { style: { fontSize: '12.5px', color: 'rgba(255,255,255,.7)' } }, tr('Drag · pinch to resize')),
+        h('div.serif', { style: { fontSize: '18px' } }, tr('Frame the memory'))),
+      h('button.b', { style: { color: '#F2C9A0' }, onclick: done }, tr('Done'))),
     stage,
-    h('div.row', { style: { padding: '8px 20px' } }, h('span.b', { style: { fontSize: '13.5px', color: 'rgba(255,255,255,.7)' } }, 'Size'), slider),
+    h('div.row', { style: { padding: '8px 20px' } }, h('span.b', { style: { fontSize: '13.5px', color: 'rgba(255,255,255,.7)' } }, tr('Size')), slider),
     chipsShape, chipsFilter,
   ], { className: 'full crop', fixed: true });
   const ro = new ResizeObserver(layout);

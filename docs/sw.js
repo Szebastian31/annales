@@ -1,6 +1,6 @@
 // Keeps Annales opening without a connection. The app files are cached; the weather is always fetched fresh.
-const CACHE = 'annales-1.0.1';
-const FILES = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
+const CACHE = 'annales-1.1.0';
+const FILES = ['./', 'index.html', 'style.css', 'i18n.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   ...['ui', 'kt', 'data', 'render', 'sky', 'weather', 'store', 'today', 'crop', 'viewer', 'journal', 'collections', 'insights-ui', 'profile', 'app'].map(f => `js/${f}.js`)];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

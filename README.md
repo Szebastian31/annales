@@ -9,6 +9,8 @@
 Annales is a stamp journal. Each day you cut up to three stamps from your photos, say how the day felt, and seal it. Sealing presses a real-looking postmark on every stamp, in your post office's own style, and puts the stamps into your phone's Photos. No account, no cloud, no server.
 
 > **On iPhone:** open [szebastian31.github.io/annales](https://szebastian31.github.io/annales/) in Safari, tap Share, then **Add to Home Screen**. It uses the same backup files as the Android app.
+>
+> **Languages:** the iPhone web app speaks 33 languages, including Arabic and Persian right to left. It follows your phone, or pick one under Profile → Language.
 
 ---
 

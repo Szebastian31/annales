@@ -74,6 +74,7 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 
 /** A small DateTimeFormatter: EEEE, EEE, d, dd, MMMM, LLLL, MMM, MM, yyyy, yy, and 'quoted text'. */
 function fmt(s, pattern) {
+  if (LANG !== 'en' && FMT_INTL[pattern]) return FMT_INTL[pattern](s);
   const { y, m, d } = D.parts(s);
   const day = DAY_NAMES[D.dow(s) - 1];
   return pattern.replace(/EEEE|EEE|MMMM|LLLL|MMM|MM|yyyy|yy|dd|d|'[^']*'/g, t => {
@@ -92,9 +93,29 @@ function fmt(s, pattern) {
   });
 }
 
+/**
+ * The same dates in another language, in its own order ("5 lis 2026", "2026年11月5日"). The postmark's dd.MM.yy has
+ * no words, so it stays as it is everywhere.
+ */
+const FMT_INTL = {
+  'd MMM yyyy': s => ldate(s, { day: 'numeric', month: 'short', year: 'numeric' }),
+  'd MMM': s => ldate(s, { day: 'numeric', month: 'short' }),
+  'EEE d MMM': s => ldate(s, { weekday: 'short', day: 'numeric', month: 'short' }),
+  'EEE d MMM yyyy': s => ldate(s, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+  'MMM yyyy': s => ldate(s, { month: 'short', year: 'numeric' }),
+  'EEE d': s => ldate(s, { weekday: 'short', day: 'numeric' }),
+  'd MMMM': s => ldate(s, { day: 'numeric', month: 'long' }),
+  'EEEE · d MMM yyyy': s => `${cap(ldate(s, { weekday: 'long' }))} · ${ldate(s, { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  'EEEE d MMMM yyyy': s => cap(ldate(s, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })),
+};
+/** Month and weekday names, for the calendar, the pages and anniversaries. */
+const monthName = m => (LANG === 'en' ? MONTH_NAMES[m - 1] : cap(lmonth(m)));
+const dayName = dow => (LANG === 'en' ? DAY_NAMES[dow - 1] : cap(lweekday(dow)));
+
 /** "4 Nov, 21:14" for a timestamp. */
 function fmtStamp(ms) {
   const t = new Date(ms);
+  if (LANG !== 'en') return t.toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', calendar: 'gregory', numberingSystem: 'latn' });
   return `${t.getDate()} ${MONTH_NAMES[t.getMonth()].slice(0, 3)}, ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
 }
 
@@ -110,4 +131,3 @@ const rgb = (c, a = 1) => (a >= 1 ? `rgb(${(c >> 16) & 255},${(c >> 8) & 255},${
 const prettyOffice = mark => mark.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 /** "GLIWICE 1" → "Gliwice", the town to ask the weather for. */
 const prettyPlace = mark => { const w = mark.trim().split(' ')[0].toLowerCase(); return w.charAt(0).toUpperCase() + w.slice(1); };
-const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;

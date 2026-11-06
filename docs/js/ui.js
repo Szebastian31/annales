@@ -23,9 +23,10 @@ function add(el, kids) {
   for (const k of kids.flat(Infinity)) if (k != null && k !== false && k !== true) el.append(k instanceof Node ? k : String(k));
   return el;
 }
-/** "Today, *not sealed yet*": plain words, then the accent in italics, the way every title reads. */
-const title = (plain, em) => h('div.title', null, plain, h('em', null, em));
-const header = (kicker, plain, em) => h('div.hdr', null, h('div.kick', null, kicker), title(plain, em));
+/** "Today, *not sealed yet*": plain words, then the accent in italics, the way every title reads. One string, with the
+ * italic part between asterisks, so each language can put it where its grammar wants it. */
+const title = text => { const [a, em = '', b = ''] = text.split('*'); return h('div.title', null, a, h('em', null, em), b); };
+const header = (kicker, text) => h('div.hdr', null, h('div.kick', null, kicker), title(text));
 const sec = (left, right = '') => h('div.sec', null, h('div.kick', null, left), right && h('span.small', { style: { fontSize: '12.5px' } }, right));
 
 const SVG = (inner, w = 24, h = 24) => `<svg viewBox="0 0 ${w} ${h}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
@@ -75,7 +76,7 @@ function stampView(id, doy, mood, width, opt = {}) {
 stampView.dims = {};
 
 /** A message at the bottom, with an optional action (needed on iPhone: sharing must start from a tap). */
-function toast(msg, action, label = 'Save') {
+function toast(msg, action, label = tr('Save')) {
   const box = document.getElementById('toast');
   const t = h('div', null, msg, action && h('button', { onclick: () => { t.remove(); action(); } }, label));
   box.append(t);
@@ -169,5 +170,5 @@ window.addEventListener('unhandledrejection', e => showError(String(e.reason && 
 function showError(msg) {
   let el = document.getElementById('err');
   if (!el) { el = h('div', { id: 'err', onclick: () => el.remove() }); document.body.append(el); }
-  el.textContent = `Something went wrong: ${msg}\nTap to hide.`;
+  el.textContent = `${tr("Something went wrong: {error}", { error: msg })}\n${tr("Tap to hide.")}`;
 }

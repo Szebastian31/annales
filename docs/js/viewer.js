@@ -19,7 +19,7 @@ function openViewer(items, start, { inside = null, onEdit = null, canReorder = f
     const stamp = day.stamps.find(s => s.id === first.id) || first;
     const width = Math.min(innerWidth, 560) * .78, ww = Math.min(width, Math.max(160, (innerHeight - 330) / 1.25));
     const go = d => { st.index = clamp(st.index + d, 0, items.length - 1); st.back = false; layer().refresh(); };
-    const pos = items.length > 1 ? `${st.index + 1} of ${items.length}` : st.back ? 'tap to turn back' : 'tap the stamp to turn it over';
+    const pos = items.length > 1 ? tr('{n} of {total}', { n: st.index + 1, total: items.length }) : st.back ? tr('tap to turn back') : tr('tap the stamp to turn it over');
     const makeFirst = canReorder && day.stamps[0] && day.stamps[0].id !== stamp.id;
 
     const flip = h('div.flip' + (st.back ? '.over' : ''), { onclick: () => { st.back = !st.back; flip.classList.toggle('over', st.back); } },
@@ -40,15 +40,15 @@ function openViewer(items, start, { inside = null, onEdit = null, canReorder = f
 
     return [
       h('div.top', null,
-        h('button', { onclick: () => Layers.close('viewer') }, '‹ Back'),
+        h('button', { onclick: () => Layers.close('viewer') }, tr('‹ Back')),
         h('div.grow'),
         h('span.small', { style: { color: 'rgba(255,255,255,.6)' } }, pos),
-        makeFirst && h('button', { onclick: () => { M.moveStamp(date, stamp, 0); items = M.day(date).stamps.map(x => [date, x]); st.index = 0; layer().refresh(); } }, '★ Make first'),
-        onEdit && h('button', { onclick: () => { onEdit(date); Layers.close('viewer'); } }, 'Edit ✎')),
+        makeFirst && h('button', { onclick: () => { M.moveStamp(date, stamp, 0); items = M.day(date).stamps.map(x => [date, x]); st.index = 0; layer().refresh(); } }, tr('★ Make first')),
+        onEdit && h('button', { onclick: () => { onEdit(date); Layers.close('viewer'); } }, tr('Edit ✎'))),
       stage,
       h('div.serif.c', { style: { fontSize: '22px', paddingTop: '8px' } }, fmt(date, 'EEEE d MMMM yyyy')),
       h('div.small.c', { style: { color: 'rgba(255,255,255,.7)', marginTop: '2px' } },
-        [day.mood != null ? Moods.names[day.mood] : null, M.placeOf(date, stamp), day.sealed ? null : 'not sealed yet'].filter(Boolean).join(' · ')),
+        [day.mood != null ? Moods.label(day.mood) : null, M.placeOf(date, stamp), day.sealed ? null : tr('not sealed yet')].filter(Boolean).join(' · ')),
       day.line.trim() && !st.back && h('div.it.c', { style: { fontSize: '17px', lineHeight: '23px', padding: '10px 28px 0', display: '-webkit-box', WebkitLineClamp: '4', WebkitBoxOrient: 'vertical', overflow: 'hidden' } }, `“${day.line}”`),
       themeChips(stamp, inside),
     ];
@@ -63,13 +63,13 @@ function themeChips(stamp, inside) {
   const row = h('div.hscroll', { style: { padding: '14px 16px', justifyContent: 'safe center' } });
   if (current && M.entries(current).some(([, ss]) => ss.some(s => s.id === stamp.id))) {
     const cv = M.cover(current), isCover = cv && cv[1].id === stamp.id;
-    row.append(h('button.dchip' + (isCover ? '.on' : ''), { onclick: () => { if (!isCover) M.setCover(current, stamp.id); } }, isCover ? `★ Cover of ${current.name}` : '☆ Set as cover'));
+    row.append(h('button.dchip' + (isCover ? '.on' : ''), { onclick: () => { if (!isCover) M.setCover(current, stamp.id); } }, isCover ? tr('★ Cover of {name}', { name: current.name }) : tr('☆ Set as cover')));
   }
   themes.forEach(t => {
     const inIt = t.ids.includes(stamp.id);
     row.append(h('button.dchip' + (inIt ? '.on' : ''), { onclick: () => M.toggleInTheme(t, stamp.id) }, (inIt ? '✓ ' : '＋ ') + t.name));
   });
-  if (!themes.length) row.append(h('span.small', { style: { color: 'rgba(255,255,255,.5)' } }, 'Make a theme in Collections to file stamps like this one.'));
+  if (!themes.length) row.append(h('span.small', { style: { color: 'rgba(255,255,255,.5)' } }, tr('Make a theme in Collections to file stamps like this one.')));
   return row;
 }
 
@@ -78,15 +78,15 @@ function backOf(date, width) {
   const day = M.day(date);
   const at = day.sealed && day.sealedAt > 0 ? fmtStamp(day.sealedAt) : null;
   const bits = postmarkBits(day);
-  const why = [day.feels.join(', '), day.factors.length ? 'because of ' + day.factors.join(', ') : ''].filter(Boolean).join(' · ');
+  const why = [day.feels.map(f => tr(f)).join(', '), day.factors.length ? tr('because of {tags}', { tags: day.factors.map(f => tr(f)).join(', ') }) : ''].filter(Boolean).join(' · ');
   return h('div.backface', { style: { width, height: width * 1.25 } },
     h('div.kick', null, `№${D.doy(date)} · ${fmt(date, 'EEEE d MMMM yyyy')}`),
-    h('div.small', { style: { marginTop: '4px' } }, at ? `Sealed ${at} · ${prettyOffice(day.office)}` : 'Not sealed yet'),
+    h('div.small', { style: { marginTop: '4px' } }, at ? tr('Sealed {when} · {office}', { when: at, office: prettyOffice(day.office) }) : tr('Not sealed yet')),
     h('div.it.grow', { style: { fontSize: '20px', lineHeight: '27px', marginTop: '18px', color: day.line.trim() ? 'var(--ink)' : 'var(--muted)', overflow: 'hidden' } },
-      day.line.trim() ? `“${day.line}”` : 'No line written for this day.'),
+      day.line.trim() ? `“${day.line}”` : tr('No line written for this day.')),
     h('div.row', null,
-      day.mood != null && h('i', { style: { width: '12px', height: '12px', borderRadius: '50%', background: Moods.css(day.mood), marginRight: '8px' } }),
-      h('span.body.b', null, day.mood != null ? Moods.names[day.mood] : 'No mood set')),
+      day.mood != null && h('i', { style: { width: '12px', height: '12px', borderRadius: '50%', background: Moods.css(day.mood), marginInlineEnd: '8px' } }),
+      h('span.body.b', null, day.mood != null ? Moods.label(day.mood) : tr('No mood set'))),
     why && h('div.small', { style: { marginTop: '4px', display: '-webkit-box', WebkitLineClamp: '3', WebkitBoxOrient: 'vertical', overflow: 'hidden' } }, why),
     bits.length > 0 && h('div', { style: { borderTop: '1px solid var(--line)', marginTop: '12px', paddingTop: '10px', fontSize: '14px' } }, bits.join('  ·  ')));
 }

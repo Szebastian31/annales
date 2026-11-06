@@ -28,7 +28,7 @@ function openDayScreen() {
   const date = U.openDay, has = M.day(date).stamps.length > 0;
   return h('div', null,
     h('button.back', { onclick: () => { if (has) { App.render(); showDayStamps(date, U.dayColl); } else { U.openDay = null; App.render(); } } },
-      has ? '‹ Stamp' : `‹ ${U.dayColl ? U.dayColl.name : 'Journal'}`),
+      has ? tr('‹ Stamp') : `‹ ${U.dayColl ? U.dayColl.name : tr('Journal')}`),
     dayPage(date));
 }
 
@@ -36,8 +36,8 @@ function journalScreen() {
   const sealed = Object.values(M.days).filter(d => d.sealed);
   const count = sealed.reduce((s, d) => s + d.stamps.length, 0);
   return h('div', null,
-    header(`${plural(count, 'stamp')} · ${plural(sealed.length, 'day')}`, 'The ', 'journal'),
-    h('div.pillbar', null, [[false, 'Calendar'], [true, 'Pages']].map(([p, n]) =>
+    header(`${tn(count, '{n} stamp', '{n} stamps')} · ${tn(sealed.length, '{n} day', '{n} days')}`, tr('The *journal*')),
+    h('div.pillbar', null, [[false, tr('Calendar')], [true, tr('Pages')]].map(([p, n]) =>
       h('button' + (U.pages === p ? '.on' : ''), { onclick: () => { U.pages = p; App.render(); } }, n))),
     U.pages ? pages() : calendar());
 }
@@ -64,13 +64,13 @@ function calendar() {
       h('div.grow', null,
         h('div.row', { style: { alignItems: 'flex-start' } },
           h('span.serif', { style: { fontSize: '44px', lineHeight: '44px' } }, pad2(sealedN)),
-          h('span.kick', { style: { fontSize: '11px', marginLeft: '4px', marginTop: '6px' } }, `DAYS · ${y}`)),
-        h('div.it.accent', { style: { fontSize: '20px' } }, MONTH_NAMES[m - 1])),
+          h('span.kick', { style: { fontSize: '11px', marginInlineStart: '4px', marginTop: '6px' } }, `${tn(sealedN, 'DAY', 'DAYS')} · ${y}`)),
+        h('div.it.accent', { style: { fontSize: '20px' } }, monthName(m))),
       nav('‹', ym > first, D.ymPlus(ym, -1)), nav('›', ym < now, D.ymPlus(ym, 1))),
     h('div.cal', null,
-      h('div.wk', null, ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => h('span', null, d))),
+      h('div.wk', null, [7, 1, 2, 3, 4, 5, 6].map(d => h('span', null, LANG === 'en' ? DAY_NAMES[d - 1].slice(0, 3).toUpperCase() : lweekday(d, 'short').toLocaleUpperCase(LOCALE)))),
       h('div.grid7', null, cells)),
-    h('div.small', { style: { padding: '12px 22px' } }, 'Coloured bars mark trips and events, in their postmark ink. Tap any day to open its stamps.'),
+    h('div.small', { style: { padding: '12px 22px' } }, tr('Coloured bars mark trips and events, in their postmark ink. Tap any day to open its stamps.')),
   ];
 }
 
@@ -96,15 +96,15 @@ function pages() {
   const by = {};
   Object.values(M.days).filter(d => d.stamps.length || d.mood != null).forEach(d => (by[D.ym(d.date)] = by[D.ym(d.date)] || []).push(d));
   const months = Object.keys(by).sort().reverse();
-  if (!months.length) return h('div.small', { style: { padding: '22px' } }, 'Your pages fill up as you seal days.');
+  if (!months.length) return h('div.small', { style: { padding: '22px' } }, tr('Your pages fill up as you seal days.'));
   return h('div', { style: { paddingTop: '16px' } }, months.map(ym => {
     const arr = by[ym].sort((a, b) => (a.date < b.date ? 1 : -1));
     const ss = arr.filter(d => d.sealed), n = ss.reduce((s, d) => s + d.stamps.length, 0), quiet = arr.length - ss.length;
     return grained(h('div.mpage', null,
       h('div.row', { style: { alignItems: 'flex-end' } },
-        h('span.serif', { style: { fontSize: '24px' } }, MONTH_NAMES[+ym.slice(5) - 1]),
-        h('span.it.accent', { style: { fontSize: '16px', marginLeft: '8px', marginBottom: '2px' } }, ROMAN[+ym.slice(5) - 1])),
-      h('div.small', { style: { marginTop: '2px', marginBottom: '12px' } }, `${n} stamps over ${ss.length} days${quiet ? ` · ${quiet} quiet` : ''}`),
+        h('span.serif', { style: { fontSize: '24px' } }, monthName(+ym.slice(5))),
+        h('span.it.accent', { style: { fontSize: '16px', marginInlineStart: '8px', marginBottom: '2px' } }, ROMAN[+ym.slice(5) - 1])),
+      h('div.small', { style: { marginTop: '2px', marginBottom: '12px' } }, tn(n, '{n} stamp over {days}', '{n} stamps over {days}', { days: tn(ss.length, '{n} day', '{n} days') }) + (quiet ? ` · ${tn(quiet, '{n} quiet', '{n} quiet')}` : '')),
       h('div.prow', null, arr.map(d => h('button', { onclick: () => openDay(d.date) }, stack(d))))));
   }));
 }
@@ -114,7 +114,7 @@ function stack(d) {
   const st = d.stamps[0];
   if (!d.sealed || !st) return h('div.qday', null,
     h('span.serif', { style: { fontSize: '15px', opacity: .6 } }, String(D.dom(d.date))),
-    h('span.small.b', { style: { fontSize: '10.5px' } }, 'quiet day'));
+    h('span.small.b', { style: { fontSize: '10.5px' } }, tr('quiet day')));
   return h('div.stack', null,
     d.stamps.length > 2 && h('i.ed', { style: { transform: 'rotate(-5deg)' } }),
     d.stamps.length > 1 && h('i.ed', { style: { transform: 'rotate(6deg)' } }),

@@ -1,8 +1,8 @@
 'use strict';
 // ui/TodayScreen.kt, ui/MoodHorizon.kt, ui/PlaceDialog.kt and the add sheet from ui/AnnalesApp.kt.
 
-const PROMPTS = ['What made you smile?', 'Where did the light look best?', 'Who did you talk to?',
-  "What would you tell next year's you?", "One thing you'd keep from today?"];
+const PROMPTS = [tr('What made you smile?'), tr('Where did the light look best?'), tr('Who did you talk to?'),
+  tr("What would you tell next year's you?"), tr("One thing you'd keep from today?")];
 
 /** The region shown on the envelope: the trip's, or the home office's (GLIWICE 1 → Silesia). */
 function regionOf(date) {
@@ -15,7 +15,7 @@ function regionOf(date) {
 function postmarkBits(day) {
   const x = day.extras, out = [];
   if (x['wx.code'] != null && !Number.isNaN(parseInt(x['wx.code'], 10))) out.push(`${Weather.describe(parseInt(x['wx.code'], 10))[1].glyph} ${x['wx.hi']}°`);
-  if (x['music.minutes'] != null) out.push(`♪ ${x['music.minutes']} min`);
+  if (x['music.minutes'] != null) out.push(`♪ ${tr('{n} min', { n: x['music.minutes'] })}`);
   if (x['money.spent'] != null) out.push(`¤ ${x['money.spent']}`);
   if (x['augur.tone'] != null) out.push(`✶ ${x['augur.tone']}${x['augur.number'] != null ? ` №${x['augur.number']}` : ''}`);
   return out;
@@ -31,7 +31,7 @@ function daySwitch() {
       borderColor: day.sealed || started ? (on ? 'var(--surface)' : day.sealed ? 'var(--green)' : 'var(--acc)') : 'transparent',
     } });
     return h('button' + (on ? '.on' : ''), { onclick: () => { U.back = b; App.render(); } },
-      b === 0 ? 'Today' : b === 1 ? 'Yesterday' : fmt(date, 'EEE d'), dot);
+      b === 0 ? tr('Today') : b === 1 ? tr('Yesterday') : fmt(date, 'EEE d'), dot);
   }));
 }
 
@@ -49,7 +49,8 @@ function dayPage(date) {
   const page = h('div', null,
     h('div', { style: { padding: '14px 18px 8px 22px' } },
       h('div.kick', null, `№${doy} · ${fmt(date, 'EEEE · d MMM yyyy')}`),
-      title(today ? 'Today, ' : fmt(date, 'd MMMM, '), day.sealed ? 'sealed' : 'not sealed yet')),
+      title(today ? (day.sealed ? tr('Today, *sealed*') : tr('Today, *not sealed yet*'))
+        : day.sealed ? tr('{date}, *sealed*', { date: fmt(date, 'd MMMM') }) : tr('{date}, *not sealed yet*', { date: fmt(date, 'd MMMM') }))),
     envelope(day, st),
     strip(day, sel));
 
@@ -60,30 +61,30 @@ function dayPage(date) {
         h('button.pill', { onclick: () => placeDialog(st.place, home, M.placeSuggestions(date), t => M.setPlace(date, st, t)) },
           '📍', M.placeOf(date, st), h('span.accent', null, ' ✎'))));
     const acts = h('div.row', { style: { justifyContent: 'center', padding: '2px 0' } });
-    if (sel > 0) acts.append(h('button.quiet', { onclick: () => { M.moveStamp(date, st, 0); U.sel[date] = 0; App.render(); } }, '★ Make first'));
-    const recrop = h('button.quiet', { hidden: true, onclick: () => recropStamp(date, st) }, 'Re-crop');
+    if (sel > 0) acts.append(h('button.quiet', { onclick: () => { M.moveStamp(date, st, 0); U.sel[date] = 0; App.render(); } }, tr('★ Make first')));
+    const recrop = h('button.quiet', { hidden: true, onclick: () => recropStamp(date, st) }, tr('Re-crop'));
     M.hasOriginal(st).then(has => { recrop.hidden = !has; });
     acts.append(recrop,
-      h('button.quiet', { onclick: () => openAdd(date, st) }, 'Replace'),
-      h('button.quiet.warn', { onclick: () => M.removeStamp(date, st) }, 'Remove'));
+      h('button.quiet', { onclick: () => openAdd(date, st) }, tr('Replace')),
+      h('button.quiet.warn', { onclick: () => M.removeStamp(date, st) }, tr('Remove')));
     page.append(acts);
   }
 
   const mood = day.mood;
   const step = (lead, label, value, done, italic, which) => h('button.step', { onclick: () => openDaySheet(date, which) },
     h('div.lead', null, lead),
-    h('div.grow', { style: { paddingLeft: '14px' } }, h('div.kick', null, label), h('div.v' + (italic ? '.it' : '') + (done ? '' : '.off'), null, value)),
+    h('div.grow', { style: { paddingInlineStart: '14px' } }, h('div.kick', null, label), h('div.v' + (italic ? '.it' : '') + (done ? '' : '.off'), null, value)),
     h('span.chev', null, '›'));
   page.append(h('div.steps', null,
-    step(mood != null ? h('i', { style: { background: Moods.css(mood) } }) : '◐', 'State of mind',
-      mood != null ? Moods.names[mood] + (day.feels.length ? ' · ' + day.feels.slice(0, 2).join(', ') : '') : `How did ${today ? 'today' : 'it'} feel?`,
+    step(mood != null ? h('i', { style: { background: Moods.css(mood) } }) : '◐', tr('State of mind'),
+      mood != null ? Moods.label(mood) + (day.feels.length ? ' · ' + day.feels.slice(0, 2).map(f => tr(f)).join(', ') : '') : (today ? tr('How did today feel?') : tr('How did it feel?')),
       mood != null, false, 'mood'),
     h('div.stepline'),
-    step('✎', 'One line', day.line.trim() || 'A line about the day', !!day.line.trim(), !!day.line.trim(), 'line'),
+    step('✎', tr('One line'), day.line.trim() || tr('A line about the day'), !!day.line.trim(), !!day.line.trim(), 'line'),
     h('div.stepline'),
-    step('✉', 'The postmark', postmarkBits(day).join('  ·  ') || 'Ink, weather, music, money', true, false, 'postmark')));
+    step('✉', tr('The postmark'), postmarkBits(day).join('  ·  ') || tr('Ink, weather, music, money'), true, false, 'postmark')));
 
-  page.append(...sealButton(day, today));
+  page.append(...sealButton(day, today).filter(Boolean)); // the note under it is false when there's nothing to say
   if (today) page.append(onThisDay(date) || '');
   if (today && !isStandalone() && isIOS() && !localStorage.getItem('hideInstall')) page.prepend(installBanner());
   return page;
@@ -92,8 +93,8 @@ function dayPage(date) {
 function installBanner() {
   const el = h('div.banner', null,
     h('div.grow', null,
-      h('div.b', null, 'Put Annales on your Home Screen'),
-      h('div.small', null, 'Tap Share, then Add to Home Screen. There it opens like an app, and Safari never clears your journal.')),
+      h('div.b', null, tr('Put Annales on your Home Screen')),
+      h('div.small', null, tr('Tap Share, then Add to Home Screen. There it opens like an app, and Safari never clears your journal.'))),
     h('button.accent.b', { onclick: () => { localStorage.setItem('hideInstall', '1'); el.remove(); } }, '✕'));
   return el;
 }
@@ -107,11 +108,11 @@ function envelope(day, st) {
       stampView(st.id, doy, day.mood, 160, { rotation: day.sealed ? -1.5 : 0 })));
   } else {
     env.append(h('button.addbox', { onclick: () => openAdd(day.date) },
-      h('b', null, '＋'), h('span', null, 'Add a stamp'), h('span.small', null, "a photo, or the day's sky")));
+      h('b', null, '＋'), h('span', null, tr('Add a stamp')), h('span.small', null, tr("a photo, or the day's sky"))));
   }
   env.append(
     h('div.cap', null,
-      h('div.kick', null, day.sealed ? `№${doy} · ${fmt(day.date, 'd MMM yyyy')}` : `№${doy} · not sealed yet`),
+      h('div.kick', null, day.sealed ? `№${doy} · ${fmt(day.date, 'd MMM yyyy')}` : `№${doy} · ${tr('not sealed yet')}`),
       day.line.trim() && h('p', null, day.line)),
     h('div.region', null, h('i', { style: { background: rgb(ink.rgb) } }), h('span', null, regionOf(day.date).toUpperCase())));
   return env;
@@ -123,26 +124,26 @@ function strip(day, sel) {
   return h('div.strip', null,
     day.stamps.map((s, i) => h('button.slot' + (i === sel ? '.on' : ''), { onclick: () => { U.sel[day.date] = i; App.render(); } },
       stampView(s.id, doy, day.mood, 40))),
-    n < 3 && h('button.slot.add', { onclick: () => openAdd(day.date) }, h('b', null, '＋'), n > 0 ? 'Add' : 'Add a stamp'),
+    n < 3 && h('button.slot.add', { onclick: () => openAdd(day.date) }, h('b', null, '＋'), n > 0 ? tr('Add') : tr('Add a stamp')),
     h('div.grow', null,
-      h('div.b', { style: { fontSize: '13.5px' } }, `${n} of 3 stamps`),
-      h('div.small', { style: { fontSize: '12.5px' } }, n > 0 ? 'Tap one to change it' : "No photo? The day's sky becomes the stamp")));
+      h('div.b', { style: { fontSize: '13.5px' } }, tn(n, '{n} of 3 stamps', '{n} of 3 stamps')),
+      h('div.small', { style: { fontSize: '12.5px' } }, n > 0 ? tr('Tap one to change it') : tr("No photo? The day's sky becomes the stamp"))));
 }
 
 /** The dark button: it says what's missing until the day can be sealed, and offers re-sealing after edits. */
 function sealButton(day, today) {
-  const label = M.busy ? 'Sealing…'
-    : !day.stamps.length ? 'Add a stamp to seal'
-    : day.mood == null ? (today ? 'Choose your state of mind to seal' : 'Choose a state of mind to seal')
-    : !day.sealed ? (today ? 'Seal today' : 'Seal this day')
-    : day.dirty ? 'Save & re-seal'
-    : today ? 'Sealed ✓ · change anything to edit' : 'Sealed ✓ · no changes yet';
+  const label = M.busy ? tr('Sealing…')
+    : !day.stamps.length ? tr('Add a stamp to seal')
+    : day.mood == null ? (today ? tr('Choose your state of mind to seal') : tr('Choose a state of mind to seal'))
+    : !day.sealed ? (today ? tr('Seal today') : tr('Seal this day'))
+    : day.dirty ? tr('Save & re-seal')
+    : today ? tr('Sealed ✓ · change anything to edit') : tr('Sealed ✓ · no changes yet');
   const ready = !M.busy && day.stamps.length > 0 && day.mood != null && (!day.sealed || day.dirty);
   const done = day.sealed && !day.dirty;
   return [
     h('button.btn' + (done ? '.done' : ''), { disabled: !ready, style: { height: '54px', fontSize: '15px' }, onclick: () => sealDay(day.date) }, label),
     ready && M.s.saveToPhotos && h('div.small.c', { style: { paddingTop: '8px' } },
-      day.sealed ? 'Afterwards you can save the updated stamps to Photos.' : 'Afterwards you can save each stamp to Photos.'),
+      day.sealed ? tr('Afterwards you can save the updated stamps to Photos.') : tr('Afterwards you can save each stamp to Photos.')),
   ];
 }
 
@@ -150,8 +151,8 @@ async function sealDay(date) {
   const r = await M.seal(date);
   if (!r) return;
   if (M.s.haptics && navigator.vibrate) navigator.vibrate(40);
-  const word = r.first ? 'Sealed.' : 'Re-sealed.';
-  if (r.clean.length) toast(`${word} Save ${r.clean.length === 1 ? 'the stamp' : `the ${r.clean.length} stamps`} to Photos?`, () => shareFiles(r.clean), 'Save');
+  const word = r.first ? tr('Sealed.') : tr('Re-sealed.');
+  if (r.clean.length) toast(`${word} ${tn(r.clean.length, 'Save the stamp to Photos?', 'Save the {n} stamps to Photos?')}`, () => shareFiles(r.clean), tr('Save'));
   else toast(word);
 }
 
@@ -160,13 +161,13 @@ function onThisDay(date) {
   const past = M.onThisDay(date)[0];
   if (!past) return null;
   const s = past.stamps[0], years = D.year(date) - D.year(past.date);
-  return h('div', null, sec('On this day', fmt(past.date, 'd MMM yyyy')),
+  return h('div', null, sec(tr('On this day'), fmt(past.date, 'd MMM yyyy')),
     grained(h('button.otd', { onclick: () => viewDay(past.date, s) },
       stampView(s.id, D.doy(past.date), past.mood, 72, { rotation: -2 }),
       h('div.grow', null,
-        h('div.small', null, (years === 1 ? 'A year ago' : `${years} years ago`) + (past.mood != null ? ` · ${Moods.names[past.mood]}` : '')),
+        h('div.small', null, (years === 1 ? tr('A year ago') : tn(years, '{n} year ago', '{n} years ago')) + (past.mood != null ? ` · ${Moods.label(past.mood)}` : '')),
         h('div.serif', { style: { fontSize: '18px' } }, past.line.trim() || fmt(past.date, 'EEEE d MMMM yyyy')),
-        past.stamps.length > 1 && h('div.small', null, `${past.stamps.length} stamps that day`)))));
+        past.stamps.length > 1 && h('div.small', null, tn(past.stamps.length, '{n} stamp that day', '{n} stamps that day'))))));
 }
 
 // ---- the three sheets ----
@@ -176,16 +177,16 @@ function openDaySheet(date, which) {
     const day = M.day(date), today = date === D.today();
     const st = (t, sub) => h('div.stitle', null, h('h2', null, t), h('div.small', { style: { marginTop: '3px' } }, sub));
     let body;
-    if (which === 'mood') body = [st('State of mind', `how you felt overall ${today ? 'today' : 'that day'}`),
+    if (which === 'mood') body = [st(tr('State of mind'), today ? tr('how you felt overall today') : tr('how you felt overall that day')),
       moodHorizon(day.moodV ?? (day.mood != null ? Math.trunc(day.mood * 100 / 6) : null), v => M.setMoodV(date, v)),
       day.mood != null && feelings(day)];
-    else if (which === 'line') body = [st('One line', 'up to 200 characters'), oneLine(day, today)];
-    else body = [st('The postmark', day.sealed ? 'as it was stamped' : 'filled in for you'),
-      sec('Ink', M.inkOn(date) === INKS.OFFICIAL ? 'Official' : M.inkOn(date).label),
+    else if (which === 'line') body = [st(tr('One line'), tr('up to 200 characters')), oneLine(day, today)];
+    else body = [st(tr('The postmark'), day.sealed ? tr('as it was stamped') : tr('filled in for you')),
+      sec(tr('Ink'), M.inkOn(date).label),
       inks(day), h('div', { style: { height: '10px' } }), postmarkCard(day),
       day.sealed && !today && h('div.small', { style: { padding: '10px 22px' } },
-        `🔒  The recorded postmark stays as it was on ${fmt(date, 'd MMM yyyy')}: the office, date and hour it actually said. You can still change its ink, stamps and words.`)];
-    return [body, h('button.btn', { onclick: () => Layers.close('day') }, 'Done')];
+        `🔒  ${tr('The recorded postmark stays as it was on {date}: the office, date and hour it actually said. You can still change its ink, stamps and words.', { date: fmt(date, 'd MMM yyyy') })}`)];
+    return [body, h('button.btn', { onclick: () => Layers.close('day') }, tr('Done'))];
   }, { onClose: () => App.render() });
 }
 
@@ -196,18 +197,19 @@ function openDaySheet(date, which) {
 function moodHorizon(moodV, onMood) {
   let v = moodV ?? 50, touched = false;
   const has = () => moodV != null || touched;
-  const name = h('div.grow', { style: { font: '600 23px/26px var(--serif)' } });
-  const hint = h('span.small', null, 'drag along the line');
+  const name = h('div.grow', { dir: 'auto', style: { font: '600 23px/26px var(--serif)' } });
+  const hint = h('span.small', null, tr('drag along the line'));
   const cv = h('canvas', { style: { width: '100%', height: '76px', display: 'block', touchAction: 'none' } });
-  const lab = t => h('span.kick', { style: { fontSize: '10.5px', letterSpacing: '1px', flex: t === 'NEUTRAL' ? 'none' : 1, textAlign: t === 'VERY PLEASANT' ? 'right' : 'left' } }, t);
-  const card = h('div', { style: { margin: '0 16px', borderRadius: '24px', padding: '14px 14px 12px', border: '1px solid var(--line)' } },
+  const lab = (t, where) => h('span.kick', { style: { fontSize: '10.5px', letterSpacing: '1px', flex: where === 'mid' ? 'none' : 1, textAlign: where === 'end' ? 'right' : 'left' } }, t);
+  // the scale runs left to right in every language, like the line drawn above it
+  const card = h('div', { dir: 'ltr', style: { margin: '0 16px', borderRadius: '24px', padding: '14px 14px 12px', border: '1px solid var(--line)' } },
     h('div.row', { style: { padding: '0 4px', alignItems: 'flex-end' } }, name, hint), cv,
-    h('div.row', { style: { padding: '0 4px' } }, lab('VERY UNPLEASANT'), lab('NEUTRAL'), lab('VERY PLEASANT')));
+    h('div.row', { style: { padding: '0 4px' } }, lab(tr('VERY UNPLEASANT')), lab(tr('NEUTRAL'), 'mid'), lab(tr('VERY PLEASANT'), 'end')));
 
   const toV = x => { const w = cv.clientWidth, x0 = 18 / 320 * w, x1 = 302 / 320 * w; return clamp(Math.trunc((x - x0) / (x1 - x0) * 100), 0, 100); };
   const paint = () => {
     const lv = Moods.levelOf(v), col = Moods.at(v / 100), tint = has() ? col : 0x9AA0A6;
-    name.textContent = has() ? Moods.names[lv] : 'How did it feel?';
+    name.textContent = has() ? Moods.label(lv) : tr('How did it feel?');
     name.style.color = has() ? rgb(Moods.readable(lv, K.look.ink)) : 'var(--muted)';
     hint.hidden = has();
     card.style.background = `linear-gradient(color-mix(in srgb, var(--surface) 86%, ${rgb(tint)}), var(--surface))`;
@@ -255,20 +257,20 @@ function feelings(day) {
   const list = [...(U.moreFeels ? fs : fs.slice(0, 10)), ...day.feels.filter(f => !fs.includes(f))];
   const q = t => h('div.b', { style: { fontSize: '14px', padding: '16px 0 9px' } }, t);
   return h('div', { style: { padding: '0 18px' } },
-    q('What best describes this feeling?'),
-    h('div.wrap', null, list.map(f => h('button.tag' + (day.feels.includes(f) ? '.on' : ''), { onclick: () => M.toggleFeel(day.date, f) }, f)),
-      fs.length > 10 && h('button.accent', { style: { fontSize: '13.5px', fontWeight: 800, padding: '8px 6px' }, onclick: () => { U.moreFeels = !U.moreFeels; Layers.refreshAll(); } }, U.moreFeels ? 'Show less' : 'Show more')),
-    q("What's having the biggest impact?"),
-    h('div.wrap', null, Tags.factors.map(f => h('button.tag' + (day.factors.includes(f) ? '.on' : ''), { onclick: () => M.toggleFactor(day.date, f) }, f))));
+    q(tr('What best describes this feeling?')),
+    h('div.wrap', null, list.map(f => h('button.tag' + (day.feels.includes(f) ? '.on' : ''), { onclick: () => M.toggleFeel(day.date, f) }, tr(f))),
+      fs.length > 10 && h('button.accent', { style: { fontSize: '13.5px', fontWeight: 800, padding: '8px 6px' }, onclick: () => { U.moreFeels = !U.moreFeels; Layers.refreshAll(); } }, U.moreFeels ? tr('Show less') : tr('Show more'))),
+    q(tr("What's having the biggest impact?")),
+    h('div.wrap', null, Tags.factors.map(f => h('button.tag' + (day.factors.includes(f) ? '.on' : ''), { onclick: () => M.toggleFactor(day.date, f) }, tr(f)))));
 }
 
 /** "One line": three prompts to start from, and up to 200 characters in italic serif. */
 function oneLine(day, today) {
   const start = D.dom(day.date) % 3;
-  const count = h('div.small', { style: { fontSize: '12px', textAlign: 'right', marginTop: '4px' } }, `${day.line.length} / 200`);
+  const count = h('div.small', { style: { fontSize: '12px', textAlign: 'end', marginTop: '4px' } }, `${day.line.length} / 200`);
   const ta = h('textarea', {
     value: day.line, maxLength: 200, rows: 2,
-    placeholder: today ? "Leaves everywhere, tea at Ola's…" : 'What do you remember about this day?',
+    placeholder: today ? tr("Leaves everywhere, tea at Ola's…") : tr('What do you remember about this day?'),
     style: { width: '100%', border: 0, outline: 'none', background: 'transparent', resize: 'none', font: 'italic 600 18px/24px var(--serif)' },
     oninput: e => { M.setLine(day.date, e.target.value); count.textContent = `${e.target.value.length} / 200`; },
     onblur: () => App.render(),
@@ -285,8 +287,8 @@ function inks(day) {
   const trip = M.tripOn(day.date), post = trip ? Places.of(trip.place).post : 'Poczta Polska', cur = M.inkOn(day.date);
   return [
     h('div.hscroll', { style: { gap: '8px' } }, Object.values(INKS).map(ink =>
-      inkChip(ink, ink === cur, ink === INKS.OFFICIAL ? `Official · ${post}` : ink.label, () => M.setDayInk(day.date, ink.name)))),
-    h('div.small', { style: { padding: '8px 22px' } }, cur === INKS.OFFICIAL ? 'Black, the way the post office itself would stamp it.' : 'Your own touch: the post office would use black.'),
+      inkChip(ink, ink === cur, ink === INKS.OFFICIAL ? `${ink.label} · ${post}` : ink.label, () => M.setDayInk(day.date, ink.name)))),
+    h('div.small', { style: { padding: '8px 22px' } }, cur === INKS.OFFICIAL ? tr('Black, the way the post office itself would stamp it.') : tr('Your own touch: the post office would use black.')),
   ];
 }
 
@@ -302,25 +304,25 @@ function postmarkCard(day) {
   const office = day.sealed ? day.office || mark : mark, under = day.sealed ? day.bottom || bottom : bottom;
   const hour = day.sealed && day.sealedAt > 0 ? D.hourOf(day.sealedAt) : null;
   const x = day.extras, rows = [];
-  rows.push(row1('✉', `${office}${under ? ' · ' + under : ''}`, fmt(day.date, 'dd.MM.yy') + (hour != null ? ` · hour ${hour}` : ' · the hour you seal it'), M.tripOn(day.date) ? 'Trip' : 'Profile'));
-  rows.push(row1('☾', `${Moon.name(day.date)} · ${Math.round(Moon.lit(day.date) * 100)}% lit`, 'Calculated, exact', 'Caelum'));
+  rows.push(row1('✉', `${office}${under ? ' · ' + under : ''}`, fmt(day.date, 'dd.MM.yy') + (hour != null ? ` · ${tr('hour {n}', { n: hour })}` : ` · ${tr('the hour you seal it')}`), M.tripOn(day.date) ? tr('Trip') : tr('Profile')));
+  rows.push(row1('☾', `${Moon.name(day.date)} · ${tr('{n}% lit', { n: Math.round(Moon.lit(day.date) * 100) })}`, tr('Calculated, exact'), 'Caelum'));
   const code = parseInt(x['wx.code'], 10);
   if (!Number.isNaN(code)) {
-    const [what, sky] = Weather.describe(code);
-    const agree = { agree: 'models agree', roughly: 'models roughly aligned', diverge: 'models diverge' }[x['wx.agree']] || '';
-    rows.push(row1(sky.glyph, `${what} · ${x['wx.hi']}° / ${x['wx.lo']}°`, `${x['wx.models']} models · ${agree}`, 'Consensus'));
-  } else rows.push(row1('☁', 'Weather', D.between(day.date, D.today()) > 90 ? 'Only kept for the last three months' : 'Needs a connection to fetch', 'Consensus', { faded: true }));
-  const android = 'Shared on Android only, for now';
-  if (x['music.track'] != null) rows.push(row1('♪', `${x['music.track']}${x['music.artist'] != null ? ' · ' + x['music.artist'] : ''}`, `${x['music.minutes'] || '0'} min listened`, 'Fidelis'));
-  else if (x['music.minutes'] != null) rows.push(row1('♪', `${x['music.minutes']} min of music`, 'no track played through yet', 'Fidelis'));
-  else rows.push(row1('♪', 'Top track', android, 'Fidelis', { faded: true }));
-  if (x['money.spent'] != null) rows.push(row1('¤', `${x['money.spent']} spent`, x['money.safe'] != null ? `safe to spend ${x['money.safe']} a day` : "safe to spend wasn't noted that day", 'Kalendae'));
-  else rows.push(row1('¤', 'Spent vs safe-to-spend', android, 'Kalendae', { faded: true }));
+    const [what, sky] = Weather.describe(code), models = +x['wx.models'] || 0;
+    const agree = { agree: tr('models agree'), roughly: tr('models roughly aligned'), diverge: tr('models diverge') }[x['wx.agree']] || '';
+    rows.push(row1(sky.glyph, `${what} · ${x['wx.hi']}° / ${x['wx.lo']}°`, `${tn(models, '{n} model', '{n} models')} · ${agree}`, 'Consensus'));
+  } else rows.push(row1('☁', tr('Weather'), D.between(day.date, D.today()) > 90 ? tr('Only kept for the last three months') : tr('Needs a connection to fetch'), 'Consensus', { faded: true }));
+  const android = tr('Shared on Android only, for now');
+  if (x['music.track'] != null) rows.push(row1('♪', `${x['music.track']}${x['music.artist'] != null ? ' · ' + x['music.artist'] : ''}`, tr('{n} min listened', { n: x['music.minutes'] || '0' }), 'Fidelis'));
+  else if (x['music.minutes'] != null) rows.push(row1('♪', tr('{n} min of music', { n: x['music.minutes'] }), tr('no track played through yet'), 'Fidelis'));
+  else rows.push(row1('♪', tr('Top track'), android, 'Fidelis', { faded: true }));
+  if (x['money.spent'] != null) rows.push(row1('¤', tr('{amount} spent', { amount: x['money.spent'] }), x['money.safe'] != null ? tr('safe to spend {amount} a day', { amount: x['money.safe'] }) : tr("safe to spend wasn't noted that day"), 'Kalendae'));
+  else rows.push(row1('¤', tr('Spent vs safe-to-spend'), android, 'Kalendae', { faded: true }));
   if (x['augur.tone'] != null) {
-    const sub = [x['augur.colour'], x['augur.agree'] != null ? `${x['augur.agree']} systems agree` : null].filter(Boolean).join(' · ') || 'where the systems agree';
+    const sub = [x['augur.colour'], x['augur.agree'] != null ? tr('{n} systems agree', { n: x['augur.agree'] }) : null].filter(Boolean).join(' · ') || tr('where the systems agree');
     const sw = (x['augur.colourHex'] || '').split(',').map(s => s.trim()).filter(s => /^#?[0-9a-f]{6,8}$/i.test(s)).slice(0, 3).map(s => (s.startsWith('#') ? s : '#' + s));
     rows.push(row1('✶', x['augur.tone'] + (x['augur.number'] != null ? ` · №${x['augur.number']}` : ''), sub, 'Augur', { swatches: sw }));
-  } else rows.push(row1('✶', "The day's tone", android, 'Augur', { faded: true }));
+  } else rows.push(row1('✶', tr("The day's tone"), android, 'Augur', { faded: true }));
   return h('div.pmc', null, rows);
 }
 
@@ -342,32 +344,32 @@ function openAdd(date, replacing = null) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     Layers.close('add');
-    try { openCrop(date, await Photos.load(file), replacing, state.place); } catch (err) { toast("Couldn't open that photo."); }
+    try { openCrop(date, await Photos.load(file), replacing, state.place); } catch (err) { toast(tr("Couldn't open that photo.")); }
   };
 
   sheet('add', layer => [
-    h('div.stitle', { style: { padding: '0 0 0 0' } }, h('h2', { style: { fontSize: '24px', lineHeight: '28px' } }, replacing ? 'Replace this stamp' : 'Add a stamp')),
-    h('button.row', { style: { marginTop: '12px', width: '100%', background: 'var(--page)', borderRadius: '14px', padding: '11px 14px', textAlign: 'left' },
+    h('div.stitle', { style: { padding: '0 0 0 0' } }, h('h2', { style: { fontSize: '24px', lineHeight: '28px' } }, replacing ? tr('Replace this stamp') : tr('Add a stamp'))),
+    h('button.row', { style: { marginTop: '12px', width: '100%', background: 'var(--page)', borderRadius: '14px', padding: '11px 14px', textAlign: 'start' },
       onclick: () => placeDialog(state.place, home, M.placeSuggestions(date), t => { state.place = t; layer.refresh(); }) },
       h('span', { style: { fontSize: '16px' } }, '📍'),
-      h('div.grow', { style: { paddingLeft: '10px' } }, h('div.kick', null, 'Taken in'), h('div.b', null, state.place || home)),
-      h('span.small.accent.b', null, 'Change')),
+      h('div.grow', { style: { paddingInlineStart: '10px' } }, h('div.kick', null, tr('Taken in')), h('div.b', null, state.place || home)),
+      h('span.small.accent.b', null, tr('Change'))),
     h('div.row', { style: { gap: '10px', marginTop: '10px', alignItems: 'stretch' } },
-      h('label.src2', null, h('b', null, '◉'), h('strong', null, 'Take a photo'), h('span', null, 'Right now'),
+      h('label.src2', null, h('b', null, '◉'), h('strong', null, tr('Take a photo')), h('span', null, tr('Right now')),
         h('input', { type: 'file', accept: 'image/*', capture: 'environment', onchange: picked })),
-      h('label.src2', null, h('b', null, '▦'), h('strong', null, 'From library'), h('span', null, 'Any photo'),
+      h('label.src2', null, h('b', null, '▦'), h('strong', null, tr('From library')), h('span', null, tr('Any photo')),
         h('input', { type: 'file', accept: 'image/*', onchange: picked }))),
-    h('div.kick', { style: { marginTop: '20px', marginBottom: '3px' } }, "Or the day's sky"),
-    h('div.small', null, suggested ? `Consensus Weather says ${suggested.label.toLowerCase()}. Drawn with that night's moon, in the day's mood colour.`
-      : "Drawn with that night's moon, in the day's mood colour."),
+    h('div.kick', { style: { marginTop: '20px', marginBottom: '3px' } }, tr("Or the day's sky")),
+    h('div.small', null, suggested ? tr("Consensus Weather says {weather}. Drawn with that night's moon, in the day's mood colour.", { weather: suggested.label.toLocaleLowerCase(LOCALE) })
+      : tr("Drawn with that night's moon, in the day's mood colour.")),
     h('div.row', { style: { gap: '8px', marginTop: '12px', alignItems: 'flex-start' } }, SKY_LIST.map(wx => {
       const box = h('div.p', { style: { background: css(wx.mid) } });
       if (previews[wx.name]) box.append(previews[wx.name]);
       return h('button.sky' + (wx === suggested ? '.on' : ''), {
         onclick: async () => { Layers.close('add'); await M.addSky(date, wx, replacing, state.place); },
-      }, box, h('span', null, wx.label.split(' ')[0]));
+      }, box, h('span', null, wx.short));
     })),
-    h('button', { style: { width: '100%', padding: '14px', marginTop: '6px', color: 'var(--muted)' }, onclick: () => Layers.close('add') }, 'Cancel'),
+    h('button', { style: { width: '100%', padding: '14px', marginTop: '6px', color: 'var(--muted)' }, onclick: () => Layers.close('add') }, tr('Cancel')),
   ], { surface: true });
 
   // the previews, drawn one by one so the sheet opens at once
@@ -392,7 +394,7 @@ function openAdd(date, replacing = null) {
 
 async function recropStamp(date, s) {
   const photo = await M.original(s);
-  if (!photo) { toast("The original photo isn't kept for this stamp."); return; }
+  if (!photo) { toast(tr("The original photo isn't kept for this stamp.")); return; }
   openCrop(date, photo, s, null);
 }
 
@@ -404,26 +406,26 @@ function placeDialog(current, home, suggestions, done) {
   const st = { text: current, finding: false, note: null };
   const input = h('input.field', { value: st.text, placeholder: home, oninput: e => { st.text = e.target.value; } });
   const save = () => { Layers.close('place'); done(st.text.trim().toLowerCase() === home.toLowerCase() ? '' : st.text.trim()); };
-  dialog('place', 'Where was this?', () => {
+  dialog('place', tr('Where was this?'), () => {
     input.value = st.text;
     return h('div', null,
-      h('div.small', null, `The town goes on this stamp's postmark. Leave it empty for ${home}.`),
+      h('div.small', null, tr("The town goes on this stamp's postmark. Leave it empty for {town}.", { town: home })),
       h('div', { style: { marginTop: '12px' } }, input),
       h('button.b.accent', {
         style: { padding: '12px 0 6px' }, disabled: st.finding,
         onclick: async () => {
           st.finding = true; st.note = null; refresh();
-          try { const t = await hereTown(); if (t) st.text = t; else st.note = 'Couldn\'t tell where you are.'; }
-          catch (e) { st.note = e && e.code === 1 ? "Location wasn't allowed. You can still type the town." : "Couldn't tell where you are. Is location on?"; }
+          try { const t = await hereTown(); if (t) st.text = t; else st.note = tr("Couldn't tell where you are."); }
+          catch (e) { st.note = e && e.code === 1 ? tr("Location wasn't allowed. You can still type the town.") : tr("Couldn't tell where you are. Is location on?"); }
           st.finding = false; refresh();
         },
-      }, st.finding ? 'Finding where you are…' : '◎  Use where I am now'),
+      }, st.finding ? tr('Finding where you are…') : `◎  ${tr('Use where I am now')}`),
       st.note && h('div.small', null, st.note),
       suggestions.length > 0 && h('div.wrap', { style: { marginTop: '10px' } }, suggestions.map(s => {
         const on = s.toLowerCase() === st.text.trim().toLowerCase();
         return h('button.small.b', { style: { color: on ? 'var(--surface)' : 'var(--ink)', background: on ? 'var(--ink)' : 'var(--page)', border: '1px solid var(--line)', borderRadius: '99px', padding: '7px 11px' },
           onclick: () => { st.text = s; refresh(); } }, s);
       })));
-  }, [['Cancel', () => Layers.close('place'), 'var(--muted)'], ['Save', save]]);
+  }, [[tr('Cancel'), () => Layers.close('place'), 'var(--muted)'], [tr('Save'), save]]);
   const refresh = () => { const l = Layers.list.find(x => x.key === 'place'); if (l) { document.activeElement && document.activeElement.blur(); l.refresh(); } };
 }

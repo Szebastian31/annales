@@ -1,7 +1,7 @@
 'use strict';
 // ui/InsightsScreen.kt: how your moods move, and what tends to come with the good ones.
 
-const RANGES = [['WEEK', 'Week'], ['MONTH', 'Month'], ['ALL', 'All']];
+const RANGES = [['WEEK', tr('Week')], ['MONTH', tr('Month')], ['ALL', tr('All')]];
 
 function insightsScreen() {
   const ins = new Insights(Object.values(M.days), M.collections);
@@ -9,27 +9,27 @@ function insightsScreen() {
   const seg = (label, on, fn) => h('button.seg' + (on ? '.on' : ''), { onclick: fn }, label);
   const note = ins.note();
   const out = h('div', null,
-    header('State of mind × your stamps', 'Your ', 'insights'),
-    h('div.sum', null, [[ins.streak, 'day streak'], [ins.longest, 'longest'], [ins.stamps, 'stamps'], [ins.places, 'places'], [ins.words, 'words']]
+    header(tr('State of mind × your stamps'), tr('Your *insights*')),
+    h('div.sum', null, [[ins.streak, tr('day streak')], [ins.longest, tr('longest')], [ins.stamps, tr('stamps')], [ins.places, tr('places')], [ins.words, tr('words')]]
       .map(([n, l]) => h('div', null, h('b', null, String(n)), h('span', null, l)))),
     note && h('div.row', { style: { padding: '12px 22px', gap: '10px' } },
       h('i', { style: { width: '14px', height: '14px', borderRadius: '50%', flex: 'none', background: Moods.css(ins.average ?? 3) } }),
       h('div.body', { style: { color: 'var(--muted)' } }, note)));
 
   if (!ins.felt.length) {
-    out.append(card(h('div.serif', { style: { fontSize: '20px' } }, 'Nothing to read yet'),
-      h('div.small', { style: { marginTop: '6px' } }, 'Drag along the horizon on Today to say how a day felt. After a few days, this page shows how your moods move and what tends to come with the good ones.')));
+    out.append(card(h('div.serif', { style: { fontSize: '20px' } }, tr('Nothing to read yet')),
+      h('div.small', { style: { marginTop: '6px' } }, tr('Drag along the horizon on Today to say how a day felt. After a few days, this page shows how your moods move and what tends to come with the good ones.'))));
     return out;
   }
-  const tabs = ['Life factors', 'Feelings', 'Connections'];
+  const tabs = [tr('Life factors'), tr('Feelings'), tr('Connections')];
   out.append(
-    card(h('div.row', null, h('div.kick.grow', null, 'State of mind'), RANGES.map(([k, l]) => seg(l, k === range, () => { U.range = k; App.render(); }))),
+    card(h('div.row', null, h('div.kick.grow', null, tr('State of mind')), RANGES.map(([k, l]) => seg(l, k === range, () => { U.range = k; App.render(); }))),
       moodChart(ins.columns(range)), mixBar(ins.mix(range), 'bar7')),
     card(h('div.row', { style: { gap: '6px' } }, tabs.map((n, i) => seg(n, i === U.insTab, () => { U.insTab = i; App.render(); }))),
       h('div', { style: { height: '12px' } }),
-      U.insTab === 0 ? tagRows(ins.factors(range), 'No life factors tagged in this range yet. Tag them under the mood on Today.')
-        : U.insTab === 1 ? tagRows(ins.feels(range), 'No feelings tagged in this range yet.') : connections(ins)),
-    card(h('div.kick', null, `Stamps per month, ${D.year(D.today())}`), monthsBars(ins.months)));
+      U.insTab === 0 ? tagRows(ins.factors(range), tr('No life factors tagged in this range yet. Tag them under the mood on Today.'))
+        : U.insTab === 1 ? tagRows(ins.feels(range), tr('No feelings tagged in this range yet.')) : connections(ins)),
+    card(h('div.kick', null, tr('Stamps per month, {year}', { year: D.year(D.today()) })), monthsBars(ins.months)));
   return out;
 }
 
@@ -49,7 +49,7 @@ function moodChart(cols) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     const font = getComputedStyle(document.body).fontFamily;
     g.font = `500 11px ${font}`; g.textBaseline = 'middle';
-    const names = ['Very Pleasant', 'Neutral', 'Very Unpleasant'];
+    const names = [Moods.label(6), Moods.label(3), Moods.label(0)];
     const gutter = Math.ceil(Math.max(...names.map(t => g.measureText(t).width))) + 10;
     const top = 8, bottom = H - 22, x0 = gutter, cw0 = W - gutter;
     const y = m => Math.round(bottom - (bottom - top) * m / 6) + .5; // on the pixel grid: crisp 1px lines
@@ -110,15 +110,15 @@ function tagRows(rows, empty) {
   if (!rows.length) return h('div.small', null, empty);
   return rows.slice(0, 10).map(t => h('div', { style: { padding: '6px 0' } },
     h('div.row', { style: { alignItems: 'flex-end' } },
-      h('span.body.grow', null, t.name),
-      h('span.small', null, `${plural(t.days.length, 'day')} · mostly ${Moods.names[Math.round(t.avg)].toLowerCase()}`)),
+      h('span.body.grow', null, tr(t.name)),
+      h('span.small', null, `${tn(t.days.length, '{n} day', '{n} days')} · ${tr('mostly {mood}', { mood: Moods.label(Math.round(t.avg)).toLocaleLowerCase(LOCALE) })}`)),
     mixBar(t.spread, 'bar7.thin')));
 }
 
 /** Each connection, most certain first; tap one to see both sides. */
 function connections(ins) {
   const side = (label, ds) => h('div.row', { style: { padding: '3px 0' } },
-    h('span.small', { style: { width: '150px', flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, `${label} · ${ds.length}d`),
+    h('span.small', { style: { width: '150px', flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, `${label} · ${tr('{n}d', { n: ds.length })}`),
     h('div.sbar', null, ds.length > 0 && h('i', { style: { display: 'block', height: '100%', width: clamp(Insights.avg(ds) / 6, .04, 1) * 100 + '%', background: Moods.css(Math.round(Insights.avg(ds))) } })));
   return [
     ins.links().map(l => {
@@ -128,13 +128,13 @@ function connections(ins) {
           h('span.g', null, l.glyph),
           h('div.grow', null,
             h('div.body', null, l.name), h('div.small', null, l.sentence),
-            h('div.lv', null, [1, 2, 3].map(i => h('i' + (i <= l.level ? '.on' : ''))), h('span.small', { style: { fontSize: '12px', marginLeft: '4px' } }, l.label))),
+            h('div.lv', null, [1, 2, 3].map(i => h('i' + (i <= l.level ? '.on' : ''))), h('span.small', { style: { fontSize: '12px', marginInlineStart: '4px' } }, l.label))),
           h('b', { style: { fontSize: '15px', color: l.level < 2 ? 'var(--muted)' : l.diff > 0 ? 'var(--green)' : '#A04234' } },
             l.level < 2 ? '≈' : (l.diff > 0 ? '+' : '−') + Math.abs(l.diff).toFixed(1))),
         open && h('div', { style: { marginTop: '10px' } }, side(l.la, l.a), side(l.lb, l.b)));
     }),
     h('div.small', { style: { marginTop: '10px' } },
-      "Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Sunny days use Consensus Weather's models; music and money appear for days restored from an Android backup where Fidelis and Kalendae shared them."),
+      tr("Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Sunny days use Consensus Weather's models; music and money appear for days restored from an Android backup where Fidelis and Kalendae shared them.")),
   ];
 }
 
@@ -142,5 +142,5 @@ function monthsBars(months) {
   const mx = Math.max(1, ...months);
   return h('div.months', null, months.map((v, i) => h('div', null,
     h('i', { style: { height: Math.max(v > 0 ? 3 : 1, 60 * v / mx) + 'px', background: v > 0 ? 'var(--acc)' : 'var(--line)' } }),
-    h('span.small', { style: { fontSize: '12px', marginTop: '4px' } }, 'JFMAMJJASOND'[i]))));
+    h('span.small', { style: { fontSize: '12px', marginTop: '4px' } }, (LANG === 'en' ? 'JFMAMJJASOND'[i] : lmonth(i + 1, 'narrow'))))));
 }

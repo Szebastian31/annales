@@ -292,7 +292,7 @@ const M = {
   /** Heavy drawing, with the busy flag up; false (and a message) if it failed. */
   async work(block) {
     this.busy = true; this.onChange();
-    try { await block(); return true; } catch (e) { toast(`Something went wrong: ${e.message || e}`); return false; } finally { this.busy = false; this.onChange(); }
+    try { await block(); return true; } catch (e) { toast(tr("Something went wrong: {error}", { error: e.message || e })); return false; } finally { this.busy = false; this.onChange(); }
   },
 
   // ---- the weather, the Consensus Weather way ----

@@ -3,26 +3,36 @@
 
 function rangeText(c) {
   if (c.from === c.to) return fmt(c.from, 'd MMM yyyy');
+  if (LANG !== 'en') {
+    // each language joins a date range its own way ("3–5 lis 2026", "2026年11月3日～5日")
+    const at = s => { const { y, m, d } = D.parts(s); return new Date(Date.UTC(y, m - 1, d)); };
+    try {
+      return new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC', calendar: 'gregory', numberingSystem: 'latn', day: 'numeric', month: 'short', year: 'numeric' })
+        .formatRange(at(c.from), at(c.to));
+    } catch (e) { return `${fmt(c.from, 'd MMM yyyy')} – ${fmt(c.to, 'd MMM yyyy')}`; }
+  }
   if (D.ym(c.from) === D.ym(c.to)) return `${D.dom(c.from)} – ${fmt(c.to, 'd MMM yyyy')}`;
   if (D.year(c.from) === D.year(c.to)) return `${fmt(c.from, 'd MMM')} – ${fmt(c.to, 'd MMM yyyy')}`;
   return `${fmt(c.from, 'd MMM yyyy')} – ${fmt(c.to, 'd MMM yyyy')}`;
 }
 
 function collLines(c) {
-  const n = M.count(c), stamps = plural(n, 'stamp');
+  const n = M.count(c), stamps = tn(n, '{n} stamp', '{n} stamps');
   switch (c.type) {
-    case 'TRIP': { const p = Places.of(c.place); return [`${rangeText(c)} · ${p.region}`, `${stamps} · postmarked ${p.mark}`]; }
+    case 'TRIP': { const p = Places.of(c.place); return [`${rangeText(c)} · ${p.region}`, `${stamps} · ${tr('postmarked {mark}', { mark: p.mark })}`]; }
     case 'EVENT': return [rangeText(c), stamps];
     case 'ANNIV': {
       const years = M.entries(c).filter(e => e[1].length).length;
-      return [`Every ${c.day} ${MONTH_NAMES[c.month - 1]} · ${plural(years, 'year')} so far`, stamps];
+      return [`${tr('Every {date}', { date: dayMonth(c.month, c.day) })} · ${tn(years, '{n} year so far', '{n} years so far')}`, stamps];
     }
-    default: return [`${n} hand-picked stamp${n === 1 ? '' : 's'}`, "Add from any stamp's page"];
+    default: return [tn(n, '{n} hand-picked stamp', '{n} hand-picked stamps'), tr("Add from any stamp's page")];
   }
 }
+/** "5 November" for an anniversary, in the language's own order. */
+const dayMonth = (m, d) => (LANG === 'en' ? `${d} ${MONTH_NAMES[m - 1]}` : ldate(D.of(2024, m, d), { day: 'numeric', month: 'long' }));
 
 const typeTag = (c, withInk = false) => h('div.tt', null, h('i', { style: { background: rgb(collInk(c).rgb) } }),
-  COLL_TYPES[c.type].label + (withInk && c.type !== 'THEME' ? ` · ${collInk(c).label} ink` : ''));
+  COLL_TYPES[c.type].label + (withInk && c.type !== 'THEME' ? ` · ${tr('{ink} ink', { ink: collInk(c).label })}` : ''));
 const ghost = (type, label) => h('div.ghost', null, h('b', null, COLL_TYPES[type].glyph), label);
 
 function collectionsScreen() {
@@ -33,20 +43,21 @@ function collectionsScreen() {
   const f = U.collFilter, list = all.filter(c => !f || c.type === f);
   const chip = (label, on, fn) => h('button.chip' + (on ? '.on' : ''), { onclick: fn }, label);
   return h('div', null,
-    header(plural(all.length, 'collection'), 'Your ', 'collections'),
+    header(tn(all.length, '{n} collection', '{n} collections'), tr('Your *collections*')),
     h('div.hscroll', null,
-      chip(`All ${all.length}`, !f, () => { U.collFilter = null; App.render(); }),
+      chip(`${tr('All')} ${all.length}`, !f, () => { U.collFilter = null; App.render(); }),
       Object.values(COLL_TYPES).map(t => chip(`${t.plural} ${all.filter(c => c.type === t.name).length}`, f === t.name, () => { U.collFilter = t.name; App.render(); }))),
     h('div', { style: { height: '10px' } }),
     !list.length && h('div.small', { style: { padding: '12px 22px' } },
-      f ? `No ${COLL_TYPES[f].plural.toLowerCase()} yet.` : 'Nothing here yet. A trip, a wedding, an anniversary or a theme like Coffee: make one below.'),
+      f ? { TRIP: tr('No trips yet.'), EVENT: tr('No events yet.'), ANNIV: tr('No anniversaries yet.'), THEME: tr('No themes yet.') }[f]
+        : tr('Nothing here yet. A trip, a wedding, an anniversary or a theme like Coffee: make one below.')),
     list.map(c => {
       const cv = M.cover(c), [l1, l2] = collLines(c);
       return h('button.coll', { onclick: () => { U.openColl = c.id; App.render(); document.getElementById('main').scrollTop = 0; } },
-        h('div.cv', null, cv ? stampView(cv[1].id, D.doy(cv[0].date), cv[0].mood, 64, { rotation: -2 }) : ghost(c.type, 'empty')),
+        h('div.cv', null, cv ? stampView(cv[1].id, D.doy(cv[0].date), cv[0].mood, 64, { rotation: -2 }) : ghost(c.type, tr('empty'))),
         h('div.grow', null, typeTag(c), h('h3', null, c.name), h('div.small', null, l1), h('div.small', null, l2)));
     }),
-    h('button.newc', { onclick: () => openCollForm(blankColl(f || 'TRIP')) }, '＋ New collection'));
+    h('button.newc', { onclick: () => openCollForm(blankColl(f || 'TRIP')) }, tr('＋ New collection')));
 }
 
 const blankColl = type => ({ id: 0, type, name: '', place: '', from: D.today(), to: D.plus(D.today(), 2), month: D.month(D.today()), day: D.dom(D.today()), ink: null, note: '', ids: [], cover: null });
@@ -58,30 +69,30 @@ function collectionScreen(c) {
   const open = s => openViewer(all, all.findIndex(e => e[1].id === s.id), { inside: c });
   const out = h('div', null,
     h('div.row', { style: { padding: '0 8px' } },
-      h('button.back', { onclick: () => { U.openColl = null; App.render(); } }, '‹ Collections'), h('div.grow'),
-      h('button.back.b', { onclick: () => openCollForm(c) }, 'Edit')),
+      h('button.back', { onclick: () => { U.openColl = null; App.render(); } }, tr('‹ Collections')), h('div.grow'),
+      h('button.back.b', { onclick: () => openCollForm(c) }, tr('Edit'))),
     h('div.row', { style: { margin: '0 16px', background: 'var(--page)', borderRadius: '18px', padding: '16px' } },
       h('div', { style: { width: '100px', height: '124px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' } },
-        cv ? stampView(cv[1].id, D.doy(cv[0].date), cv[0].mood, 94, { rotation: -2 }) : ghost(c.type, 'cover')),
-      h('div.grow', { style: { marginLeft: '14px' } }, typeTag(c, true),
+        cv ? stampView(cv[1].id, D.doy(cv[0].date), cv[0].mood, 94, { rotation: -2 }) : ghost(c.type, tr('cover'))),
+      h('div.grow', { style: { marginInlineStart: '14px' } }, typeTag(c, true),
         h('div.serif', { style: { fontSize: '24px', lineHeight: '29px' } }, c.name), h('div.small', null, l1), h('div.small', null, l2))),
     c.note.trim() && h('div.body.it', { style: { color: 'var(--muted)', padding: '12px 22px', whiteSpace: 'pre-wrap' } }, c.note));
 
   if (c.type === 'THEME') {
     out.append(all.length
       ? h('div.sgrid', null, all.map(([date, s]) => h('button', { onclick: () => open(s) }, stampView(s.id, D.doy(date), M.day(date).mood, 96))))
-      : h('div.small', { style: { padding: '22px' } }, `Empty for now. Open any stamp and tap ＋ ${c.name} to add it here.`));
+      : h('div.small', { style: { padding: '22px' } }, tr('Empty for now. Open any stamp and tap ＋ {name} to add it here.', { name: c.name })));
   } else {
     entries.forEach(([d, ss], i) => {
-      const label = c.type === 'ANNIV' ? `${D.year(d.date)} · ${DAY_NAMES[D.dow(d.date) - 1]}` : `Day ${i + 1} · ${fmt(d.date, 'EEE d MMM')}`;
+      const label = c.type === 'ANNIV' ? `${D.year(d.date)} · ${dayName(D.dow(d.date))}` : `${tr('Day {n}', { n: i + 1 })} · ${fmt(d.date, 'EEE d MMM')}`;
       const row = h('div.row', { style: { gap: '10px', marginTop: '6px', flexWrap: 'wrap' } },
         ss.map(s => h('button', { onclick: () => open(s) }, stampView(s.id, D.doy(d.date), d.mood, 66))));
-      if (d.date > today) row.append(h('span.small', null, 'Not yet. Stamps you seal that day land here.'));
-      else if (!d.sealed && d.stamps.length) row.append(h('button.quiet', { style: { padding: '10px 0' }, onclick: () => openDay(d.date, c) }, 'Seal this day to add it here'));
-      else if (!d.sealed) row.append(h('button.quiet', { style: { padding: '10px 0', fontWeight: 600 }, onclick: () => openDay(d.date, c) }, '＋ Add a stamp'));
+      if (d.date > today) row.append(h('span.small', null, tr('Not yet. Stamps you seal that day land here.')));
+      else if (!d.sealed && d.stamps.length) row.append(h('button.quiet', { style: { padding: '10px 0' }, onclick: () => openDay(d.date, c) }, tr('Seal this day to add it here')));
+      else if (!d.sealed) row.append(h('button.quiet', { style: { padding: '10px 0', fontWeight: 600 }, onclick: () => openDay(d.date, c) }, tr('＋ Add a stamp')));
       out.append(h('div', { style: { padding: '8px 22px' } }, h('div.kick', null, label), row));
     });
-    if (c.type === 'ANNIV' && !entries.length) out.append(h('div.small', { style: { padding: '22px' } }, 'Seal a day on this date and it lands here, every year.'));
+    if (c.type === 'ANNIV' && !entries.length) out.append(h('div.small', { style: { padding: '22px' } }, tr('Seal a day on this date and it lands here, every year.')));
   }
   return out;
 }
@@ -91,7 +102,7 @@ function openCollForm(start) {
   const isNew = start.id === 0;
   const f = { ...start };
   let confirmDelete = false;
-  const HINT = { TRIP: 'Weekend in Kraków', EVENT: "Ola's wedding", ANNIV: 'Our anniversary', THEME: 'Coffee' };
+  const HINT = { TRIP: tr('Weekend in Kraków'), EVENT: tr("Ola's wedding"), ANNIV: tr('Our anniversary'), THEME: tr('Coffee') };
   const layer = () => Layers.list.find(l => l.key === 'form');
   const redo = () => { if (document.activeElement) document.activeElement.blur(); layer().refresh(); };
   const ok = () => f.name.trim() && (f.type !== 'TRIP' || f.place.trim()) && (!['TRIP', 'EVENT'].includes(f.type) || f.to >= f.from);
@@ -108,50 +119,50 @@ function openCollForm(start) {
     h('input', { type: 'date', value: iso, onchange: e => { if (e.target.value) { onPick(e.target.value); redo(); } } }));
 
   Layers.open('form', () => {
-    const p = Places.of(f.type === 'TRIP' ? (f.place.trim() || 'Somewhere') : 'Gliwice'), ink = collInk(f);
+    const p = Places.of(f.type === 'TRIP' ? (f.place.trim() || tr('Somewhere')) : 'Gliwice'), ink = collInk(f);
     const annIso = D.of(D.year(D.today()), f.month, Math.min(f.day, D.lengthOfMonth(D.year(D.today()), f.month)));
     saveBtn = h('button.btn.acc', { disabled: !ok(), style: { width: '100%', margin: '18px 0 0' }, onclick: () => {
       const saved = M.saveCollection({ ...f, name: f.name.trim(), place: f.place.trim() });
       Layers.close('form'); U.tab = 'collections'; U.openColl = saved.id; App.render();
-    } }, isNew ? 'Create collection' : 'Save');
+    } }, isNew ? tr('Create collection') : tr('Save'));
     return [
       h('div.row', { style: { padding: '0 8px' } },
-        h('button.back', { onclick: () => Layers.close('form') }, '‹ Back'),
-        h('div.grow.c.serif', { style: { fontSize: '18px' } }, isNew ? 'New collection' : 'Edit collection'),
+        h('button.back', { onclick: () => Layers.close('form') }, tr('‹ Back')),
+        h('div.grow.c.serif', { style: { fontSize: '18px' } }, isNew ? tr('New collection') : tr('Edit collection')),
         h('div', { style: { width: '72px' } })),
       h('div.scroll', { style: { padding: '8px 16px 30px' } },
         h('div.types', null, Object.values(COLL_TYPES).map(t => h('button' + (t.name === f.type ? '.on' : ''), {
           disabled: !isNew && t.name !== f.type, onclick: () => { f.type = t.name; redo(); },
         }, h('div.body.b', null, `${t.glyph} ${t.label}`), h('div.small', { style: { fontSize: '12.5px', lineHeight: '17px' } }, t.about)))),
-        textField('Name', 'name', HINT[f.type]),
+        textField(tr('Name'), 'name', HINT[f.type]),
         f.type === 'TRIP' && [
-          textField('Where', 'place', 'City'),
+          textField(tr('Where'), 'place', tr('City')),
           h('div.hscroll', { style: { padding: '8px 0' } }, Places.suggestions.map(s => h('button.chip' + (f.place === s ? '.on' : ''), {
             onclick: () => { f.place = s; if (!f.name.trim()) f.name = s; redo(); },
           }, s))),
         ],
         (f.type === 'TRIP' || f.type === 'EVENT') && h('div.row', { style: { gap: '8px', marginTop: '8px', alignItems: 'stretch' } },
-          dateField('From', fmt(f.from, 'EEE d MMM yyyy'), f.from, v => { f.from = v; if (f.to < v) f.to = v; }),
-          dateField('To', fmt(f.to, 'EEE d MMM yyyy'), f.to, v => { f.to = v; }, f.to < f.from)),
+          dateField(tr('From'), fmt(f.from, 'EEE d MMM yyyy'), f.from, v => { f.from = v; if (f.to < v) f.to = v; }),
+          dateField(tr('To'), fmt(f.to, 'EEE d MMM yyyy'), f.to, v => { f.to = v; }, f.to < f.from)),
         f.type === 'ANNIV' && h('div.row', { style: { marginTop: '8px' } },
-          dateField('Date · repeats every year', `${f.day} ${MONTH_NAMES[f.month - 1]}`, annIso, v => { f.month = D.month(v); f.day = D.dom(v); })),
+          dateField(tr('Date · repeats every year'), dayMonth(f.month, f.day), annIso, v => { f.month = D.month(v); f.day = D.dom(v); })),
         f.type !== 'THEME' ? [
-          h('div.kick', { style: { padding: '16px 0 6px' } }, 'Postmark ink'),
+          h('div.kick', { style: { padding: '16px 0 6px' } }, tr('Postmark ink')),
           h('div.row', { style: { gap: '8px', flexWrap: 'wrap' } }, Object.values(INKS).map(i => inkChip(i, i === ink, null, () => { f.ink = i === INKS.OFFICIAL ? null : i.name; redo(); }))),
           h('div.small', { style: { marginTop: '6px' } },
-            f.type !== 'TRIP' ? 'Changes how this collection is labelled. Days are stamped by your own post office.'
-              : ink === INKS.OFFICIAL ? `Days in this trip are stamped ${p.mark}${p.bottom ? ' · ' + p.bottom : ''}, in black, like ${p.post} would.`
-                : `Days in this trip are stamped ${p.mark}, in ${ink.label.toLowerCase()}: your own touch.`),
-        ] : h('div.small', { style: { marginTop: '12px' } }, `Themes don't change postmarks. Add stamps from any stamp's page with ＋ ${f.name.trim() || 'this theme'}.`),
-        textField('Story', 'note', 'What is this collection about?', true),
+            f.type !== 'TRIP' ? tr('Changes how this collection is labelled. Days are stamped by your own post office.')
+              : ink === INKS.OFFICIAL ? tr('Days in this trip are stamped {mark}, in black, like {post} would.', { mark: p.mark + (p.bottom ? ' · ' + p.bottom : ''), post: p.post })
+                : tr('Days in this trip are stamped {mark}, in {ink}: your own touch.', { mark: p.mark, ink: LANG === 'en' ? ink.label.toLowerCase() : ink.label })),
+        ] : h('div.small', { style: { marginTop: '12px' } }, tr("Themes don't change postmarks. Add stamps from any stamp's page with ＋ {name}.", { name: f.name.trim() || tr('this theme') })),
+        textField(tr('Story'), 'note', tr('What is this collection about?'), true),
         saveBtn,
         !isNew && [
           h('button.b.warn', { style: { width: '100%', padding: '14px 0 6px' }, onclick: () => {
             if (!confirmDelete) { confirmDelete = true; redo(); return; }
             M.deleteCollection(start); Layers.close('form'); U.openColl = null; App.render();
-            toast('Collection deleted. Its stamps are still in your journal.');
-          } }, confirmDelete ? 'Tap again to delete' : 'Delete collection'),
-          h('div.small.c', null, 'Deleting a collection keeps every stamp in your journal.'),
+            toast(tr('Collection deleted. Its stamps are still in your journal.'));
+          } }, confirmDelete ? tr('Tap again to delete') : tr('Delete collection')),
+          h('div.small.c', null, tr('Deleting a collection keeps every stamp in your journal.')),
         ]),
     ];
   }, { className: 'full' });

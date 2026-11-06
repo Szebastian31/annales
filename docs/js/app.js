@@ -5,7 +5,7 @@ const U = {
   tab: 'today', back: 0, openDay: null, dayColl: null, dayEdit: false, openColl: null, month: null, pages: false,
   collFilter: null, range: 'MONTH', insTab: 0, openLink: null, moreFeels: false, sel: {}, filled: {},
 };
-const TABS = [['today', 'Today'], ['journal', 'Journal'], ['collections', 'Collections'], ['insights', 'Insights'], ['profile', 'Profile']];
+const TABS = [['today', tr('Today')], ['journal', tr('Journal')], ['collections', tr('Collections')], ['insights', tr('Insights')], ['profile', tr('Profile')]];
 
 const App = {
   shown: null,
@@ -35,7 +35,7 @@ const App = {
   try {
     await M.load();
   } catch (e) {
-    showError(`Couldn't open the journal storage (${e.message || e}). Private Browsing keeps nothing; open Annales in a normal tab.`);
+    showError(tr("Couldn't open the journal storage ({error}). Private Browsing keeps nothing; open Annales in a normal tab.", { error: e.message || e }));
     return;
   }
   M.onChange = () => App.render();

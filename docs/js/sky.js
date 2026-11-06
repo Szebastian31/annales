@@ -2,11 +2,11 @@
 // render/SkyStamp.kt for the web: the day's sky, drawn like a small print, on a 100 × 125 grid in real pixels.
 
 const SKY = {
-  CLEAR: { name: 'CLEAR', label: 'Clear', glyph: '☀', top: 0xFF5E8FC4, bottom: 0xFFF6D9B4, mid: 0xFFA9C6E0, light: 0xFFFFF1D2 },
-  PARTLY: { name: 'PARTLY', label: 'Partly cloudy', glyph: '⛅', top: 0xFF7D9EC2, bottom: 0xFFF0DCC4, mid: 0xFFB9CCDD, light: 0xFFFFF0D6 },
-  CLOUDY: { name: 'CLOUDY', label: 'Overcast', glyph: '☁', top: 0xFF8C939D, bottom: 0xFFE2DDD3, mid: 0xFFB9BCBF, light: 0xFFF4F0E8 },
-  RAIN: { name: 'RAIN', label: 'Rain', glyph: '☂', top: 0xFF5D6774, bottom: 0xFFB9BEC3, mid: 0xFF8A939D, light: 0xFFDDE2E7 },
-  FOG: { name: 'FOG', label: 'Fog', glyph: '≋', top: 0xFFB9B9B4, bottom: 0xFFEDE9E0, mid: 0xFFD5D3CC, light: 0xFFFFFCF4 },
+  CLEAR: { name: 'CLEAR', art: 'Clear', label: tr('Clear'), short: tr('Clear'), glyph: '☀', top: 0xFF5E8FC4, bottom: 0xFFF6D9B4, mid: 0xFFA9C6E0, light: 0xFFFFF1D2 },
+  PARTLY: { name: 'PARTLY', art: 'Partly cloudy', label: tr('Partly cloudy'), short: tr('Partly'), glyph: '⛅', top: 0xFF7D9EC2, bottom: 0xFFF0DCC4, mid: 0xFFB9CCDD, light: 0xFFFFF0D6 },
+  CLOUDY: { name: 'CLOUDY', art: 'Overcast', label: tr('Overcast'), short: tr('Overcast'), glyph: '☁', top: 0xFF8C939D, bottom: 0xFFE2DDD3, mid: 0xFFB9BCBF, light: 0xFFF4F0E8 },
+  RAIN: { name: 'RAIN', art: 'Rain', label: tr('Rain'), short: tr('Rain'), glyph: '☂', top: 0xFF5D6774, bottom: 0xFFB9BEC3, mid: 0xFF8A939D, light: 0xFFDDE2E7 },
+  FOG: { name: 'FOG', art: 'Fog', label: tr('Fog'), short: tr('Fog'), glyph: '≋', top: 0xFFB9B9B4, bottom: 0xFFEDE9E0, mid: 0xFFD5D3CC, light: 0xFFFFFCF4 },
 };
 const SKY_LIST = [SKY.CLEAR, SKY.PARTLY, SKY.CLOUDY, SKY.RAIN, SKY.FOG];
 
@@ -125,7 +125,7 @@ const Sky = (() => {
     g.font = `${size}px ui-serif, Georgia, "Times New Roman", serif`;
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
     let x = mx + mr + 2.8 * u;
-    for (const ch of wx.label.toUpperCase()) { g.fillText(ch, x, y); x += g.measureText(ch).width + .28 * size; }
+    for (const ch of wx.art.toUpperCase()) { g.fillText(ch, x, y); x += g.measureText(ch).width + .28 * size; }
   }
 
   function grain(g, r, w, h) {
