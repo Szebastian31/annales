@@ -248,9 +248,9 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
             val n = d.stamps.size
             sealedTick++
             message = when {
-                !saveToPhotos -> if (first) "Sealed." else "Re-sealed."
-                links.size == n -> "$n stamp${if (n > 1) "s" else ""} ${if (first) "saved to" else "updated in"} Photos › Annales"
-                else -> "Sealed. Some stamps couldn't go to Photos on this phone."
+                !saveToPhotos -> if (first) tr("Sealed.") else tr("Re-sealed.")
+                links.size == n -> if (first) tn(n, "{n} stamp saved to Photos › Annales", "{n} stamps saved to Photos › Annales") else tn(n, "{n} stamp updated in Photos › Annales", "{n} stamps updated in Photos › Annales")
+                else -> tr("Sealed. Some stamps couldn't go to Photos on this phone.")
             }
         })
     }
@@ -261,7 +261,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         busy = true
         val ok = withContext(Dispatchers.IO) { runCatching { com.annales.journal.data.Backup.write(getApplication(), uri, password) }.isSuccess }
         busy = false
-        message = if (ok) (if (password.isNullOrEmpty()) "Backup saved." else "Backup saved, locked with your password.") else "Couldn't write the backup there."
+        message = if (ok) (if (password.isNullOrEmpty()) tr("Backup saved.") else tr("Backup saved, locked with your password.")) else tr("Couldn't write the backup there.")
     }
 
     /** Null if it opens without a password, true if it needs one; false if it isn't an Annales backup. */
@@ -274,7 +274,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         val r = withContext(Dispatchers.IO) { runCatching { com.annales.journal.data.Backup.restore(getApplication(), uri, password) } }
         busy = false
         r.exceptionOrNull()?.let { e ->
-            message = if (e is com.annales.journal.data.Backup.WrongPassword) "That password doesn't open this backup." else "That file isn't an Annales backup."
+            message = if (e is com.annales.journal.data.Backup.WrongPassword) tr("That password doesn't open this backup.") else tr("That file isn't an Annales backup.")
             done(false); return@launch
         }
         days = withContext(Dispatchers.IO) { store.load() }
@@ -284,7 +284,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
         keepOriginals = settings.keepOriginals; haptics = settings.haptics
         com.annales.journal.ui.K.look = runCatching { com.annales.journal.ui.Look.valueOf(settings.look) }.getOrDefault(com.annales.journal.ui.Look.KRAFT)
         version++
-        message = "Restored ${days.values.sumOf { it.stamps.size }} stamps from the backup."
+        message = tn(days.values.sumOf { it.stamps.size }, "Restored {n} stamp from the backup.", "Restored {n} stamps from the backup.")
         done(true)
     }
 
@@ -425,7 +425,7 @@ class AnnalesModel(app: Application) : AndroidViewModel(app) {
     private fun work(block: suspend () -> Unit, done: () -> Unit) = viewModelScope.launch {
         busy = true
         val ok = try { withContext(Dispatchers.Default) { block() }; true } catch (e: Exception) {
-            message = "Something went wrong: ${e.message ?: e.javaClass.simpleName}"; false
+            message = tr("Something went wrong: {error}", "error" to (e.message ?: e.javaClass.simpleName)); false
         } finally { busy = false }
         if (ok) done()
     }

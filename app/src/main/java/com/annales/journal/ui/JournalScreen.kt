@@ -35,12 +35,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
+import com.annales.journal.I18n
+import com.annales.journal.tn
+import com.annales.journal.tr
 import com.annales.journal.data.CollType
 import com.annales.journal.data.Day
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val ROMAN = listOf("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII")
 
@@ -52,11 +53,11 @@ fun JournalScreen(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit, modifier:
     val count = sealed.sumOf { it.stamps.size }
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-        Header("$count stamp${if (count == 1) "" else "s"} · ${sealed.size} day${if (sealed.size == 1) "" else "s"}", title("The ", "journal"))
+        Header("${tn(count, "{n} stamp", "{n} stamps")} · ${tn(sealed.size, "{n} day", "{n} days")}", title(tr("The *journal*")))
         Row(
             Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(99.dp)).background(K.surface).border(1.dp, K.line, RoundedCornerShape(99.dp)).padding(3.dp)
         ) {
-            listOf(false to "Calendar", true to "Pages").forEach { (p, n) ->
+            listOf(false to tr("Calendar"), true to tr("Pages")).forEach { (p, n) ->
                 Text(
                     n, textAlign = TextAlign.Center,
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (pages == p) K.surface else K.muted),
@@ -80,9 +81,9 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
                 Text("%02d".format(sealedN), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 44.sp, lineHeight = 44.sp, color = K.ink))
-                Text("DAYS · ${ym.year}", style = KickerStyle.copy(fontSize = 11.sp), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+                Text("${tn(sealedN, "DAY", "DAYS")} · ${ym.year}", style = KickerStyle.copy(fontSize = 11.sp), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
             }
-            Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, color = K.acc))
+            Text(I18n.cap(I18n.date(ym, "LLLL")), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, color = K.acc))
         }
         Nav("‹", ym > first) { month = ym.minusMonths(1).toString() }
         Spacer(Modifier.size(6.dp))
@@ -91,8 +92,8 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
 
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(horizontal = 8.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth()) {
-            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach {
-                Text(it.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = .8.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            (1..7).map { I18n.date(LocalDate.of(2026, 11, it), "EEE") }.forEach {   // Sunday first, 1 Nov 2026 was one
+                Text(I18n.upper(it), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = .8.sp), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             }
         }
         val lead = ym.atDay(1).dayOfWeek.value % 7 // Sunday first, as in the mockup
@@ -113,7 +114,7 @@ private fun Calendar(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
         }
     }
     Text(
-        "Coloured bars mark trips and events, in their postmark ink. Tap any day to open its stamps.",
+        tr("Coloured bars mark trips and events, in their postmark ink. Tap any day to open its stamps."),
         style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
     )
 }
@@ -164,7 +165,7 @@ private fun Cell(model: AnnalesModel, date: LocalDate, inMonth: Boolean, today: 
 private fun Pages(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
     val byMonth = model.days.values.filter { it.stamps.isNotEmpty() || it.mood != null }.groupBy { YearMonth.from(it.date) }
     if (byMonth.isEmpty()) {
-        Text("Your pages fill up as you seal days.", style = SmallStyle, modifier = Modifier.padding(22.dp))
+        Text(tr("Your pages fill up as you seal days."), style = SmallStyle, modifier = Modifier.padding(22.dp))
         return
     }
     Column(Modifier.padding(top = 16.dp)) {
@@ -183,11 +184,11 @@ private fun Pages(model: AnnalesModel, onOpenDay: (LocalDate) -> Unit) {
                     .padding(start = 20.dp, end = 14.dp, top = 18.dp, bottom = 16.dp)
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(ym.format(DateTimeFormatter.ofPattern("LLLL", Locale.ENGLISH)), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
+                    Text(I18n.cap(I18n.date(ym, "LLLL")), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 24.sp, color = K.ink))
                     Text(ROMAN[ym.monthValue - 1], style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 16.sp, color = K.acc),
                         modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
                 }
-                Text("$n stamps over ${ss.size} days${if (quiet > 0) " · $quiet quiet" else ""}", style = SmallStyle, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+                Text(tn(n, "{n} stamp over {days}", "{n} stamps over {days}", "days" to tn(ss.size, "{n} day", "{n} days")) + (if (quiet > 0) " · " + tn(quiet, "{n} quiet", "{n} quiet") else ""), style = SmallStyle, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
                 arr.chunked(4).forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         row.forEach { d -> Box(Modifier.weight(1f).clickable { onOpenDay(d.date) }, contentAlignment = Alignment.Center) { Stack(model, d) } }
@@ -207,7 +208,7 @@ private fun Stack(model: AnnalesModel, d: Day) {
         Box(Modifier.size(56.dp, 68.dp).dashed(K.line), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("${d.date.dayOfMonth}", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = K.ink.copy(alpha = .6f)))
-                Text("quiet day", style = SmallStyle.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold))
+                Text(tr("quiet day"), style = SmallStyle.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold))
             }
         }
         return

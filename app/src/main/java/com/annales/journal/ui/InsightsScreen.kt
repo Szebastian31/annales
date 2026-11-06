@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
+import com.annales.journal.I18n
+import com.annales.journal.tn
+import com.annales.journal.tr
 import com.annales.journal.data.Insights
 import com.annales.journal.data.Moods
 import kotlin.math.abs
@@ -53,11 +56,11 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(0) }
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-        Header("State of mind × your stamps", title("Your ", "insights"))
+        Header(tr("State of mind × your stamps"), title(tr("Your *insights*")))
 
         // the summary row
         Row(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(vertical = 14.dp)) {
-            listOf(ins.streak to "day streak", ins.longest to "longest", ins.stamps to "stamps", ins.places to "places", ins.words to "words")
+            listOf(ins.streak to tr("day streak"), ins.longest to tr("longest"), ins.stamps to tr("stamps"), ins.places to tr("places"), ins.words to tr("words"))
                 .forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
@@ -76,9 +79,9 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 
         if (ins.felt.isEmpty()) {
             Card {
-                Text("Nothing to read yet", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
+                Text(tr("Nothing to read yet"), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
                 Text(
-                    "Drag along the horizon on Today to say how a day felt. After a few days, this page shows how your moods move and what tends to come with the good ones.",
+                    tr("Drag along the horizon on Today to say how a day felt. After a few days, this page shows how your moods move and what tends to come with the good ones."),
                     style = SmallStyle, modifier = Modifier.padding(top = 6.dp),
                 )
             }
@@ -88,8 +91,8 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
         // state of mind
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("STATE OF MIND", style = KickerStyle, modifier = Modifier.weight(1f))
-                Insights.Range.entries.forEach { r -> Seg(r.label, r == range) { range = r } }
+                Text(I18n.upper(tr("State of mind")), style = KickerStyle, modifier = Modifier.weight(1f))
+                Insights.Range.entries.forEach { r -> Seg(tr(r.label), r == range) { range = r } }
             }
             MoodChart(ins.columns(range))
             MixBar(ins.mix(range))
@@ -98,19 +101,19 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
         // tags and connections
         Card {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Life factors", "Feelings", "Connections").forEachIndexed { i, n -> Seg(n, i == tab) { tab = i } }
+                listOf(tr("Life factors"), tr("Feelings"), tr("Connections")).forEachIndexed { i, n -> Seg(n, i == tab) { tab = i } }
             }
             Spacer(Modifier.height(12.dp))
             when (tab) {
-                0 -> TagRows(ins.factors(range), "No life factors tagged in this range yet. Tag them under the mood on Today.")
-                1 -> TagRows(ins.feels(range), "No feelings tagged in this range yet.")
+                0 -> TagRows(ins.factors(range), tr("No life factors tagged in this range yet. Tag them under the mood on Today."))
+                1 -> TagRows(ins.feels(range), tr("No feelings tagged in this range yet."))
                 else -> Connections(ins)
             }
         }
 
         // stamps per month
         Card {
-            Text("STAMPS PER MONTH, ${java.time.LocalDate.now().year}", style = KickerStyle)
+            Text(I18n.upper(tr("Stamps per month, {year}", "year" to java.time.LocalDate.now().year)), style = KickerStyle)
             val mx = maxOf(1, ins.months.max())
             Row(Modifier.fillMaxWidth().height(90.dp).padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
                 ins.months.forEachIndexed { i, v ->
@@ -119,7 +122,7 @@ fun InsightsScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                             Modifier.width(12.dp).height((60f * v / mx).dp.coerceAtLeast(if (v > 0) 3.dp else 1.dp))
                                 .background(if (v > 0) K.acc else K.line, RoundedCornerShape(3.dp))
                         )
-                        Text("JFMAMJJASOND"[i].toString(), style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.padding(top = 4.dp))
+                        Text(if (I18n.lang == "en") "JFMAMJJASOND"[i].toString() else I18n.date(java.time.YearMonth.of(2026, i + 1), "LLLLL"), style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
@@ -145,7 +148,7 @@ private fun Seg(label: String, on: Boolean, onClick: () -> Unit) = Text(
 private fun MoodChart(cols: List<Insights.Column>) {
     Row(Modifier.fillMaxWidth().height(170.dp).padding(top = 12.dp)) {
         Column(Modifier.fillMaxHeight().padding(end = 6.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            listOf("Very Pleasant", "Neutral", "Very Unpleasant").forEach { Text(it, style = SmallStyle.copy(fontSize = 11.sp)) }
+            listOf("Very Pleasant", "Neutral", "Very Unpleasant").forEach { Text(tr(it), style = SmallStyle.copy(fontSize = 11.sp)) }
         }
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Canvas(Modifier.weight(1f).fillMaxWidth()) {
@@ -191,8 +194,8 @@ private fun TagRows(rows: List<Insights.Tagged>, empty: String) {
     rows.take(10).forEach { t ->
         Column(Modifier.padding(vertical = 6.dp)) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(t.name, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
-                Text("${t.days.size} day${if (t.days.size == 1) "" else "s"} · mostly ${Moods.names[t.avg.roundToInt()].lowercase()}", style = SmallStyle)
+                Text(tr(t.name), style = BodyStyle.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
+                Text("${tn(t.days.size, "{n} day", "{n} days")} · ${tr("mostly {mood}", "mood" to tr(Moods.names[t.avg.roundToInt()]).lowercase(I18n.locale))}", style = SmallStyle)
             }
             Row(Modifier.fillMaxWidth().padding(top = 5.dp).height(8.dp).clip(RoundedCornerShape(99.dp))) {
                 t.spread.forEachIndexed { i, n -> if (n > 0) Box(Modifier.weight(n.toFloat()).fillMaxHeight().background(Color(Moods.color(i)))) }
@@ -224,7 +227,7 @@ private fun Connections(ins: Insights) {
                 }
                 val d = l.diff
                 Text(
-                    if (l.level < 2) "≈" else (if (d > 0) "+" else "−") + "%.1f".format(abs(d)),
+                    if (l.level < 2) "≈" else (if (d > 0) "+" else "−") + String.format(java.util.Locale.ROOT, "%.1f", abs(d)),
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = when { l.level < 2 -> K.muted; d > 0 -> K.green; else -> Color(0xFFA04234) }),
                 )
             }
@@ -236,7 +239,7 @@ private fun Connections(ins: Insights) {
         }
     }
     Text(
-        "Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Sunny days use Consensus Weather's models; music and money appear once Fidelis and Kalendae share their days.",
+        tr("Bars show how sure this is, based on how many days each side has. Hints from your own entries, not causes. Sunny days use Consensus Weather's models; music and money appear once Fidelis and Kalendae share their days."),
         style = SmallStyle, modifier = Modifier.padding(top = 10.dp),
     )
 }
@@ -244,7 +247,7 @@ private fun Connections(ins: Insights) {
 @Composable
 private fun Side(label: String, n: Int, avg: Double, any: Boolean) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("$label · ${n}d", style = SmallStyle, modifier = Modifier.width(150.dp), maxLines = 1)
+        Text("$label · ${tr("{n}d", "n" to n)}", style = SmallStyle, modifier = Modifier.width(150.dp), maxLines = 1)
         Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(99.dp)).background(K.line)) {
             if (any) Box(Modifier.fillMaxWidth((avg / 6).toFloat().coerceIn(.04f, 1f)).fillMaxHeight().background(Color(Moods.color(avg.roundToInt()))))
         }

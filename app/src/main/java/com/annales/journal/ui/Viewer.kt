@@ -53,8 +53,8 @@ import com.annales.journal.data.Stamp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.annales.journal.I18n
+import com.annales.journal.tr
 
 /**
  * Stamps full screen, like a gallery: swipe or use the arrows to move through [items]. [inside] names the collection
@@ -70,7 +70,7 @@ fun Viewer(model: AnnalesModel, items: List<Pair<LocalDate, Stamp>>, start: Int,
     key(stamp.id) {
         ViewerPage(
             model, date, stamp, inside,
-            position = if (items.size > 1) "${index + 1} of ${items.size}" else null,
+            position = if (items.size > 1) tr("{n} of {total}", "n" to index + 1, "total" to items.size) else null,
             onPrev = if (index > 0) ({ index-- }) else null,
             onNext = if (index < items.size - 1) ({ index++ }) else null,
             onClose = onClose, onEdit = onEdit?.let { e -> { e(date) } },
@@ -98,11 +98,11 @@ private fun ViewerPage(
             .clickable(remember { MutableInteractionSource() }, null) { }, // swallow taps behind
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { saveAndClose() }) { Text("‹ Back", color = Color.White) }
+            TextButton(onClick = { saveAndClose() }) { Text(tr("‹ Back"), color = Color.White) }
             Spacer(Modifier.weight(1f))
-            Text(position ?: if (back) "tap to turn back" else "tap the stamp to turn it over", style = SmallStyle.copy(color = Color(0x99FFFFFF)))
-            if (onMakeFirst != null) TextButton(onClick = onMakeFirst) { Text("★ Make first", color = Color.White, fontWeight = FontWeight.Bold) }
-            if (onEdit != null) TextButton(onClick = onEdit) { Text("Edit ✎", color = Color.White, fontWeight = FontWeight.Bold) } else Spacer(Modifier.size(12.dp))
+            Text(position ?: if (back) tr("tap to turn back") else tr("tap the stamp to turn it over"), style = SmallStyle.copy(color = Color(0x99FFFFFF)))
+            if (onMakeFirst != null) TextButton(onClick = onMakeFirst) { Text(tr("★ Make first"), color = Color.White, fontWeight = FontWeight.Bold) }
+            if (onEdit != null) TextButton(onClick = onEdit) { Text(tr("Edit ✎"), color = Color.White, fontWeight = FontWeight.Bold) } else Spacer(Modifier.size(12.dp))
         }
         Box(
             Modifier.weight(1f).fillMaxWidth().pointerInput(onPrev, onNext) {
@@ -130,13 +130,13 @@ private fun ViewerPage(
             onPrev?.let { Arrow("‹", Modifier.align(Alignment.CenterStart)) { it() } }
             onNext?.let { Arrow("›", Modifier.align(Alignment.CenterEnd)) { it() } }
         }
-        val label = date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
+        val label = I18n.date(date, "EEEE d MMMM yyyy")
         Text(
             label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = Color.White),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
         )
         Text(
-            listOfNotNull(day.mood?.let { Moods.names[it] }, model.placeOf(date, stamp), if (day.sealed) null else "not sealed yet")
+            listOfNotNull(day.mood?.let { tr(Moods.names[it]) }, model.placeOf(date, stamp), if (day.sealed) null else tr("not sealed yet"))
                 .joinToString(" · "),
             style = SmallStyle.copy(color = Color(0xB3FFFFFF)),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp),
@@ -170,13 +170,13 @@ private fun Themes(model: AnnalesModel, stamp: Stamp, inside: Collection?) {
     ) {
         if (current != null && model.entries(current).any { (_, ss) -> ss.any { it.id == stamp.id } }) {
             val isCover = model.cover(current)?.second?.id == stamp.id
-            DarkChip(if (isCover) "★ Cover of ${current.name}" else "☆ Set as cover", isCover) { if (!isCover) model.setCover(current, stamp.id) }
+            DarkChip(if (isCover) tr("★ Cover of {name}", "name" to current.name) else tr("☆ Set as cover"), isCover) { if (!isCover) model.setCover(current, stamp.id) }
         }
         themes.forEach { t ->
             val inIt = stamp.id in t.ids
             DarkChip(if (inIt) "✓ ${t.name}" else "＋ ${t.name}", inIt) { model.toggleInTheme(t, stamp.id) }
         }
-        if (themes.isEmpty()) Text("Make a theme in Collections to file stamps like this one.", style = SmallStyle.copy(color = Color(0x80FFFFFF)))
+        if (themes.isEmpty()) Text(tr("Make a theme in Collections to file stamps like this one."), style = SmallStyle.copy(color = Color(0x80FFFFFF)))
     }
 }
 
@@ -193,25 +193,25 @@ private fun DarkChip(label: String, on: Boolean, onClick: () -> Unit) = Text(
 private fun Back(model: AnnalesModel, date: LocalDate, width: androidx.compose.ui.unit.Dp, modifier: Modifier) {
     val day = model.day(date)
     val sealedAt = if (day.sealed && day.sealedAt > 0)
-        Instant.ofEpochMilli(day.sealedAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm", Locale.ENGLISH)) else null
+        I18n.date(Instant.ofEpochMilli(day.sealedAt).atZone(ZoneId.systemDefault()), "d MMM, HH:mm") else null
     Column(modifier.size(width, width * 1.25f).background(K.surface).padding(20.dp)) {
-        Text("№${date.dayOfYear} · ${date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))}".uppercase(), style = KickerStyle)
+        Text(I18n.upper("№${date.dayOfYear} · ${I18n.date(date, "EEEE d MMMM yyyy")}"), style = KickerStyle)
         Text(
-            if (sealedAt != null) "Sealed $sealedAt · ${prettyOffice(day.office)}" else "Not sealed yet",
+            if (sealedAt != null) tr("Sealed {when} · {office}", "when" to sealedAt, "office" to prettyOffice(day.office)) else tr("Not sealed yet"),
             style = SmallStyle, modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            day.line.ifBlank { "No line written for this day." }.let { if (day.line.isBlank()) it else "“$it”" },
+            day.line.ifBlank { tr("No line written for this day.") }.let { if (day.line.isBlank()) it else "“$it”" },
             style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 20.sp, lineHeight = 27.sp,
                 color = if (day.line.isBlank()) K.muted else K.ink),
             modifier = Modifier.padding(top = 18.dp).weight(1f),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             day.mood?.let { Box(Modifier.size(12.dp).background(Color(Moods.color(it)), CircleShape)); Spacer(Modifier.size(8.dp)) }
-            Text(day.mood?.let { Moods.names[it] } ?: "No mood set", style = BodyStyle.copy(fontWeight = FontWeight.Bold))
+            Text(day.mood?.let { tr(Moods.names[it]) } ?: tr("No mood set"), style = BodyStyle.copy(fontWeight = FontWeight.Bold))
         }
         if (day.feels.isNotEmpty() || day.factors.isNotEmpty()) Text(
-            listOf(day.feels.joinToString(", "), day.factors.joinToString(", ").let { if (it.isBlank()) "" else "because of $it" })
+            listOf(day.feels.joinToString(", ") { tr(it) }, day.factors.joinToString(", ") { tr(it) }.let { if (it.isBlank()) "" else tr("because of {tags}", "tags" to it) })
                 .filter { it.isNotBlank() }.joinToString(" · "),
             style = SmallStyle, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp),
         )

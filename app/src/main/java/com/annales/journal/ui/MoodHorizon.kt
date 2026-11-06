@@ -1,5 +1,6 @@
 package com.annales.journal.ui
 
+import com.annales.journal.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,11 +57,11 @@ fun MoodHorizon(moodV: Int?, enabled: Boolean, onMood: (Int) -> Unit, modifier: 
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Bottom) {
             Text(
-                if (has) Moods.names[lv] else "How did it feel?",
+                if (has) tr(Moods.names[lv]) else tr("How did it feel?"),
                 style = TextStyle(fontFamily = K.serif, fontSize = 23.sp, lineHeight = 26.sp, color = nameCol, fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.weight(1f),
             )
-            if (!has) Text("drag along the line", style = SmallStyle)
+            if (!has) Text(tr("drag along the line"), style = SmallStyle)
         }
         Canvas(
             Modifier.fillMaxWidth().height(76.dp)
@@ -98,9 +99,9 @@ fun MoodHorizon(moodV: Int?, enabled: Boolean, onMood: (Int) -> Unit, modifier: 
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             val lab = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp)
-            Text("VERY UNPLEASANT", style = lab, modifier = Modifier.weight(1f))
-            Text("NEUTRAL", style = lab)
-            Text("VERY PLEASANT", style = lab, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(tr("VERY UNPLEASANT"), style = lab, modifier = Modifier.weight(1f))
+            Text(tr("NEUTRAL"), style = lab)
+            Text(tr("VERY PLEASANT"), style = lab, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
     }
 }

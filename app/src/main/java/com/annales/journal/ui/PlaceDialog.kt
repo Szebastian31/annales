@@ -1,5 +1,6 @@
 package com.annales.journal.ui
 
+import com.annales.journal.tr
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -54,21 +55,21 @@ fun PlaceDialog(current: String, home: String, suggestions: List<String>, onDism
         scope.launch {
             val t = Here.town(context)
             finding = false
-            if (t != null) text = t else note = "Couldn't tell where you are. Is location on?"
+            if (t != null) text = t else note = tr("Couldn't tell where you are. Is location on?")
         }
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) locate() else note = "Location wasn't allowed. You can still type the town."
+        if (ok) locate() else note = tr("Location wasn't allowed. You can still type the town.")
     }
     AlertDialog(
         onDismissRequest = onDismiss, containerColor = K.surface,
-        title = { Text("Where was this?", style = TitleStyle.copy(fontSize = 22.sp)) },
+        title = { Text(tr("Where was this?"), style = TitleStyle.copy(fontSize = 22.sp)) },
         text = {
             Column {
-                Text("The town goes on this stamp's postmark. Leave it empty for $home.", style = SmallStyle)
+                Text(tr("The town goes on this stamp's postmark. Leave it empty for {town}.", "town" to home), style = SmallStyle)
                 OutlinedTextField(text, { text = it }, singleLine = true, placeholder = { Text(home) }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
                 Text(
-                    if (finding) "Finding where you are…" else "◎  Use where I am now",
+                    if (finding) tr("Finding where you are…") else "◎  " + tr("Use where I am now"),
                     style = BodyStyle.copy(fontWeight = FontWeight.Bold, color = K.acc),
                     modifier = Modifier.padding(top = 12.dp).clickable(enabled = !finding) { if (canLocate(context)) locate() else ask.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
                         .padding(vertical = 6.dp),
@@ -86,7 +87,7 @@ fun PlaceDialog(current: String, home: String, suggestions: List<String>, onDism
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onDone(if (text.trim().equals(home, ignoreCase = true)) "" else text.trim()) }) { Text("Save", color = K.acc, fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = K.muted) } },
+        confirmButton = { TextButton(onClick = { onDone(if (text.trim().equals(home, ignoreCase = true)) "" else text.trim()) }) { Text(tr("Save"), color = K.acc, fontWeight = FontWeight.Bold) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel"), color = K.muted) } },
     )
 }

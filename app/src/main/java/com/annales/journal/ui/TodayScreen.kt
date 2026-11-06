@@ -59,19 +59,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
+import com.annales.journal.I18n
 import com.annales.journal.data.Day
 import com.annales.journal.data.Ink
 import com.annales.journal.data.Moon
 import com.annales.journal.data.Places
 import com.annales.journal.data.Stamp
 import com.annales.journal.data.Tags
+import com.annales.journal.tn
+import com.annales.journal.tr
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.roundToInt
 
-private val kickerDate = DateTimeFormatter.ofPattern("EEEE · d MMM yyyy", Locale.ENGLISH)
-private val capDate = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
+private fun capDate(d: LocalDate) = I18n.date(d, "d MMM yyyy")
 private val PROMPTS = listOf("What made you smile?", "Where did the light look best?", "Who did you talk to?",
     "What would you tell next year's you?", "One thing you'd keep from today?")
 
@@ -105,10 +105,12 @@ fun DayPage(
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 28.dp)) {
         Column(Modifier.padding(start = 22.dp, end = 18.dp, top = 14.dp, bottom = 8.dp)) {
-            Text("№${date.dayOfYear} · ${date.format(kickerDate)}".uppercase(), style = KickerStyle)
+            Text(I18n.upper("№${date.dayOfYear} · ${I18n.date(date, "EEEE · d MMM yyyy")}"), style = KickerStyle)
             Text(
-                title(if (today) "Today, " else date.format(DateTimeFormatter.ofPattern("d MMMM, ", Locale.ENGLISH)),
-                    if (day.sealed) "sealed" else "not sealed yet"),
+                title(when {
+                    today -> tr(if (day.sealed) "Today, *sealed*" else "Today, *not sealed yet*")
+                    else -> tr(if (day.sealed) "{date}, *sealed*" else "{date}, *not sealed yet*", "date" to I18n.date(date, "d MMMM"))
+                }),
                 style = TitleStyle.copy(fontSize = 30.sp, lineHeight = 33.sp), modifier = Modifier.padding(top = 6.dp),
             )
         }
@@ -129,10 +131,10 @@ fun DayPage(
                 }
             }
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center) {
-                if (sel > 0) Quiet("★ Make first") { model.moveStamp(date, st, 0); sel = 0 }
-                if (model.hasOriginal(st)) Quiet("Re-crop") { onRecrop(st) }
-                Quiet("Replace") { onReplace(st) }
-                Quiet("Remove", warn = true) { model.removeStamp(date, st) }
+                if (sel > 0) Quiet(tr("★ Make first")) { model.moveStamp(date, st, 0); sel = 0 }
+                if (model.hasOriginal(st)) Quiet(tr("Re-crop")) { onRecrop(st) }
+                Quiet(tr("Replace")) { onReplace(st) }
+                Quiet(tr("Remove"), warn = true) { model.removeStamp(date, st) }
             }
             if (placing) {
                 val home = prettyOffice(day.office.ifBlank { model.postmarkFor(date).first }).substringBefore(" ")
@@ -144,15 +146,15 @@ fun DayPage(
             val mood = day.mood
             Step(
                 lead = { if (mood != null) Box(Modifier.size(16.dp).background(Color(com.annales.journal.data.Moods.color(mood)), CircleShape)) else Glyph("◐") },
-                label = "State of mind",
-                value = mood?.let { com.annales.journal.data.Moods.names[it] + (day.feels.takeIf { f -> f.isNotEmpty() }?.let { f -> " · " + f.take(2).joinToString(", ") } ?: "") }
-                    ?: "How did ${if (today) "today" else "it"} feel?",
+                label = tr("State of mind"),
+                value = mood?.let { tr(com.annales.journal.data.Moods.names[it]) + (day.feels.takeIf { f -> f.isNotEmpty() }?.let { f -> " · " + f.take(2).joinToString(", ") { s -> tr(s) } } ?: "") }
+                    ?: tr(if (today) "How did today feel?" else "How did it feel?"),
                 done = mood != null,
             ) { sheet = "mood" }
             StepLine()
-            Step({ Glyph("✎") }, "One line", day.line.ifBlank { "A line about the day" }, done = day.line.isNotBlank(), italic = day.line.isNotBlank()) { sheet = "line" }
+            Step({ Glyph("✎") }, tr("One line"), day.line.ifBlank { tr("A line about the day") }, done = day.line.isNotBlank(), italic = day.line.isNotBlank()) { sheet = "line" }
             StepLine()
-            Step({ Glyph("✉") }, "The postmark", postmarkBits(model, day).joinToString("  ·  ").ifBlank { "Ink, weather, music, money" }, done = true) { sheet = "postmark" }
+            Step({ Glyph("✉") }, tr("The postmark"), postmarkBits(model, day).joinToString("  ·  ").ifBlank { tr("Ink, weather, music, money") }, done = true) { sheet = "postmark" }
         }
 
         SealButton(model, day, today)
@@ -167,22 +169,22 @@ fun DayPage(
             Column(Modifier.verticalScroll(rememberScrollState()).imePadding().padding(bottom = 24.dp)) {
                 when (which) {
                     "mood" -> {
-                        SheetTitle("State of mind", "how you felt overall ${if (today) "today" else "that day"}")
+                        SheetTitle(tr("State of mind"), tr(if (today) "how you felt overall today" else "how you felt overall that day"))
                         MoodHorizon(day.moodV ?: day.mood?.let { it * 100 / 6 }, enabled = true, onMood = { model.setMoodV(date, it) })
                         if (day.mood != null) Feelings(model, day)
                     }
                     "line" -> {
-                        SheetTitle("One line", "up to 200 characters")
+                        SheetTitle(tr("One line"), tr("up to 200 characters"))
                         OneLine(model, day, today)
                     }
                     else -> {
-                        SheetTitle("The postmark", if (day.sealed) "as it was stamped" else "filled in for you")
-                        Sec("Ink", model.inkOn(date).let { if (it == Ink.OFFICIAL) "Official" else it.label })
+                        SheetTitle(tr("The postmark"), tr(if (day.sealed) "as it was stamped" else "filled in for you"))
+                        Sec(tr("Ink"), tr(model.inkOn(date).label))
                         Inks(model, day)
                         Spacer(Modifier.height(10.dp))
                         PostmarkCard(model, day)
                         if (day.sealed && !today) Text(
-                            "🔒  The recorded postmark stays as it was on ${date.format(capDate)}: the office, date and hour it actually said. You can still change its ink, stamps and words.",
+                            "🔒  " + tr("The recorded postmark stays as it was on {date}: the office, date and hour it actually said. You can still change its ink, stamps and words.", "date" to capDate(date)),
                             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp),
                         )
                     }
@@ -191,7 +193,7 @@ fun DayPage(
                     onClick = { sheet = null }, shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = K.ink, contentColor = K.surface),
                     modifier = Modifier.padding(horizontal = 16.dp).padding(top = 18.dp).fillMaxWidth().height(50.dp),
-                ) { Text("Done", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp) }
+                ) { Text(tr("Done"), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp) }
             }
         }
     }
@@ -202,7 +204,7 @@ internal fun postmarkBits(model: AnnalesModel, day: Day): List<String> {
     val x = day.extras
     return listOfNotNull(
         x["wx.code"]?.toIntOrNull()?.let { c -> "${SKY_GLYPH[com.annales.journal.data.Siblings.describe(c).second] ?: "☁"} ${x["wx.hi"]}°" },
-        x["music.minutes"]?.let { "♪ $it min" },
+        x["music.minutes"]?.let { "♪ " + tr("{n} min", "n" to it) },
         x["money.spent"]?.let { "¤ $it" },
         x["augur.tone"]?.let { "✶ $it" + (x["augur.number"]?.let { n -> " №$n" } ?: "") },
     )
@@ -215,7 +217,7 @@ private fun Step(lead: @Composable () -> Unit, label: String, value: String, don
 ) {
     Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { lead() }
     Column(Modifier.weight(1f).padding(start = 14.dp)) {
-        Text(label.uppercase(), style = KickerStyle)
+        Text(I18n.upper(label), style = KickerStyle)
         Text(
             value, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp),
             style = if (italic) TextStyle(fontFamily = K.serif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 22.sp, color = K.ink)
@@ -254,7 +256,7 @@ private fun Badge(label: String, filled: Boolean) = Text(
 private fun Sec(left: String, right: String = "") = Row(
     Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically,
 ) {
-    Text(left.uppercase(), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
+    Text(I18n.upper(left), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
     if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 12.5.sp))
 }
 
@@ -295,15 +297,15 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("＋", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 30.sp, color = K.ink))
-                    Text("Add a stamp", style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
-                    Text("a photo, or the day's sky", style = SmallStyle)
+                    Text(tr("Add a stamp"), style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
+                    Text(tr("a photo, or the day's sky"), style = SmallStyle)
                 }
             }
         }
-        val cap = if (day.sealed) "№${day.date.dayOfYear} · ${day.date.format(capDate)}" else "№${day.date.dayOfYear} · not sealed yet"
+        val cap = if (day.sealed) "№${day.date.dayOfYear} · ${capDate(day.date)}" else "№${day.date.dayOfYear} · ${tr("not sealed yet")}"
         val t = day.line.ifBlank { null }
         Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 12.dp).width(190.dp)) {
-            Text(cap.uppercase(), style = KickerStyle.copy(fontSize = 11.5.sp, letterSpacing = 1.3.sp))
+            Text(I18n.upper(cap), style = KickerStyle.copy(fontSize = 11.5.sp, letterSpacing = 1.3.sp))
             if (t != null) Text(t, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.ink),
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
         }
@@ -314,7 +316,7 @@ private fun Envelope(model: AnnalesModel, day: Day, st: Stamp?, onAdd: () -> Uni
         ) {
             Box(Modifier.size(8.dp).background(Color(ink.argb), CircleShape))
             Spacer(Modifier.size(5.dp))
-            Text(regionOf(model, day.date).uppercase(), style = KickerStyle.copy(fontSize = 11.sp, letterSpacing = 1.1.sp))
+            Text(I18n.upper(tr(regionOf(model, day.date))), style = KickerStyle.copy(fontSize = 11.sp, letterSpacing = 1.1.sp))
         }
     }
 }
@@ -352,12 +354,12 @@ private fun Strip(model: AnnalesModel, day: Day, sel: Int, onSelect: (Int) -> Un
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("＋", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 20.sp, color = K.ink))
-                Text(if (n > 0) "Add" else "Add a stamp", style = SmallStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                Text(tr(if (n > 0) "Add" else "Add a stamp"), style = SmallStyle.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
             }
         }
         Column(Modifier.weight(1f)) {
-            Text("$n of 3 stamps", style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold))
-            Text(if (n > 0) "Tap one to change it" else "No photo? The day's sky becomes the stamp", style = SmallStyle.copy(fontSize = 12.5.sp))
+            Text(tn(n, "{n} of 3 stamps", "{n} of 3 stamps"), style = BodyStyle.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold))
+            Text(tr(if (n > 0) "Tap one to change it" else "No photo? The day's sky becomes the stamp"), style = SmallStyle.copy(fontSize = 12.5.sp))
         }
     }
 }
@@ -387,18 +389,18 @@ private fun Feelings(model: AnnalesModel, day: Day) {
     val fs = Tags.feelsFor(mood)
     val list = (if (more) fs else fs.take(10)) + day.feels.filter { it !in fs }
     Column(Modifier.padding(horizontal = 18.dp)) {
-        Text("What best describes this feeling?", style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
+        Text(tr("What best describes this feeling?"), style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            list.forEach { f -> Tag(f, f in day.feels) { model.toggleFeel(day.date, f) } }
+            list.forEach { f -> Tag(tr(f), f in day.feels) { model.toggleFeel(day.date, f) } }
             if (fs.size > 10) Text(
-                if (more) "Show less" else "Show more",
+                tr(if (more) "Show less" else "Show more"),
                 style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = K.acc),
                 modifier = Modifier.clickable { more = !more }.padding(horizontal = 6.dp, vertical = 8.dp),
             )
         }
-        Text("What's having the biggest impact?", style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
+        Text(tr("What's having the biggest impact?"), style = BodyStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 16.dp, bottom = 9.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Tags.factors.forEach { f -> Tag(f, f in day.factors) { model.toggleFactor(day.date, f) } }
+            Tags.factors.forEach { f -> Tag(tr(f), f in day.factors) { model.toggleFactor(day.date, f) } }
         }
     }
 }
@@ -412,7 +414,7 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         PROMPTS.subList(start, start + 3).forEach { p ->
             Text(
-                p, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.muted),
+                tr(p), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = K.muted),
                 modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(K.surface).border(1.dp, K.line, RoundedCornerShape(99.dp))
                     .clickable { hint = p }.padding(horizontal = 12.dp, vertical = 8.dp),
             )
@@ -424,7 +426,7 @@ private fun OneLine(model: AnnalesModel, day: Day, today: Boolean) {
             text, { if (it.length <= 200) { text = it; model.setLine(day.date, it) } },
             textStyle = style, cursorBrush = SolidColor(K.acc), minLines = 2,
             modifier = Modifier.fillMaxWidth(),
-            decorationBox = { inner -> Box { if (text.isEmpty()) Text(hint, style = style.copy(color = K.muted.copy(alpha = .75f))); inner() } },
+            decorationBox = { inner -> Box { if (text.isEmpty()) Text(tr(hint), style = style.copy(color = K.muted.copy(alpha = .75f))); inner() } },
         )
         Text("${text.length} / 200", style = SmallStyle.copy(fontSize = 12.sp), modifier = Modifier.align(Alignment.End).padding(top = 4.dp))
     }
@@ -437,11 +439,11 @@ private fun Inks(model: AnnalesModel, day: Day) {
     val cur = model.inkOn(day.date)
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Ink.entries.forEach { ink ->
-            InkChip(ink, ink == cur, label = if (ink == Ink.OFFICIAL) "Official · $post" else ink.label) { model.setDayInk(day.date, ink) }
+            InkChip(ink, ink == cur, label = if (ink == Ink.OFFICIAL) "${tr("Official")} · $post" else tr(ink.label)) { model.setDayInk(day.date, ink) }
         }
     }
     Text(
-        if (cur == Ink.OFFICIAL) "Black, the way the post office itself would stamp it." else "Your own touch: the post office would use black.",
+        tr(if (cur == Ink.OFFICIAL) "Black, the way the post office itself would stamp it." else "Your own touch: the post office would use black."),
         style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
     )
 }
@@ -456,34 +458,35 @@ private fun PostmarkCard(model: AnnalesModel, day: Day) {
         java.time.Instant.ofEpochMilli(day.sealedAt).atZone(java.time.ZoneId.systemDefault()).hour else null
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.surface, RoundedCornerShape(18.dp)).padding(horizontal = 16.dp, vertical = 6.dp)) {
         Row1("✉", "$office${if (under.isNotBlank()) " · $under" else ""}",
-            "%02d.%02d.%02d".format(day.date.dayOfMonth, day.date.monthValue, day.date.year % 100) + (hour?.let { " · hour $it" } ?: " · the hour you seal it"),
-            model.tripOn(day.date)?.let { "Trip" } ?: "Profile")
+            "%02d.%02d.%02d".format(day.date.dayOfMonth, day.date.monthValue, day.date.year % 100) + " · " + (hour?.let { tr("hour {n}", "n" to it) } ?: tr("the hour you seal it")),
+            tr(if (model.tripOn(day.date) != null) "Trip" else "Profile"))
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
-        Row1("☾", "${Moon.name(day.date)} · ${(Moon.lit(day.date) * 100).roundToInt()}% lit", "Calculated, exact", "Caelum")
+        Row1("☾", "${tr(Moon.name(day.date))} · ${tr("{n}% lit", "n" to (Moon.lit(day.date) * 100).roundToInt())}", tr("Calculated, exact"), "Caelum")
         val x = day.extras
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
         val code = x["wx.code"]?.toIntOrNull()
         if (code != null) {
-            val agree = mapOf("agree" to "models agree", "roughly" to "models roughly aligned", "diverge" to "models diverge")[x["wx.agree"]] ?: ""
+            val agree = mapOf("agree" to "models agree", "roughly" to "models roughly aligned", "diverge" to "models diverge")[x["wx.agree"]]?.let { tr(it) } ?: ""
+            val models = x["wx.models"]?.toIntOrNull() ?: 0
             Row1(SKY_GLYPH[com.annales.journal.data.Siblings.describe(code).second] ?: "☁",
-                "${com.annales.journal.data.Siblings.describe(code).first} · ${x["wx.hi"]}° / ${x["wx.lo"]}°",
-                "${x["wx.models"]} models · $agree", "Consensus")
-        } else Row1("☁", "Weather", if (java.time.temporal.ChronoUnit.DAYS.between(day.date, LocalDate.now()) > 90) "Only kept for the last three months" else "Needs a connection to fetch", "Consensus", faded = true)
+                "${tr(com.annales.journal.data.Siblings.describe(code).first)} · ${x["wx.hi"]}° / ${x["wx.lo"]}°",
+                "${tn(models, "{n} model", "{n} models")} · $agree", "Consensus")
+        } else Row1("☁", tr("Weather"), tr(if (java.time.temporal.ChronoUnit.DAYS.between(day.date, LocalDate.now()) > 90) "Only kept for the last three months" else "Needs a connection to fetch"), "Consensus", faded = true)
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
         if (x["music.track"] != null) Row1("♪", "${x["music.track"]}${x["music.artist"]?.let { " · $it" } ?: ""}",
-            "${x["music.minutes"] ?: "0"} min listened", "Fidelis")
-        else if (x["music.minutes"] != null) Row1("♪", "${x["music.minutes"]} min of music", "no track played through yet", "Fidelis")
-        else Row1("♪", "Top track", sourceNote(model, com.annales.journal.data.Siblings.FIDELIS), "Fidelis", faded = true)
+            tr("{n} min listened", "n" to (x["music.minutes"] ?: "0")), "Fidelis")
+        else if (x["music.minutes"] != null) Row1("♪", tr("{n} min of music", "n" to x["music.minutes"]), tr("no track played through yet"), "Fidelis")
+        else Row1("♪", tr("Top track"), sourceNote(model, com.annales.journal.data.Siblings.FIDELIS), "Fidelis", faded = true)
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
-        if (x["money.spent"] != null) Row1("¤", "${x["money.spent"]} spent", x["money.safe"]?.let { "safe to spend $it a day" } ?: "safe to spend wasn't noted that day", "Kalendae")
-        else Row1("¤", "Spent vs safe-to-spend", sourceNote(model, com.annales.journal.data.Siblings.KALENDAE), "Kalendae", faded = true)
+        if (x["money.spent"] != null) Row1("¤", tr("{amount} spent", "amount" to x["money.spent"]), x["money.safe"]?.let { tr("safe to spend {amount} a day", "amount" to it) } ?: tr("safe to spend wasn't noted that day"), "Kalendae")
+        else Row1("¤", tr("Spent vs safe-to-spend"), sourceNote(model, com.annales.journal.data.Siblings.KALENDAE), "Kalendae", faded = true)
         Box(Modifier.fillMaxWidth().height(1.dp).background(K.line))
         if (x["augur.tone"] != null) Row1(
             "✶", x["augur.tone"]!! + (x["augur.number"]?.let { " · №$it" } ?: ""),
-            listOfNotNull(x["augur.colour"], x["augur.agree"]?.let { "$it systems agree" }).joinToString(" · ").ifBlank { "where the systems agree" },
+            listOfNotNull(x["augur.colour"], x["augur.agree"]?.let { tr("{n} systems agree", "n" to it) }).joinToString(" · ").ifBlank { tr("where the systems agree") },
             "Augur", swatches = augurColours(x),
         )
-        else Row1("✶", "The day's tone", sourceNote(model, com.annales.journal.data.Siblings.AUGUR), "Augur", faded = true)
+        else Row1("✶", tr("The day's tone"), sourceNote(model, com.annales.journal.data.Siblings.AUGUR), "Augur", faded = true)
     }
 }
 
@@ -499,20 +502,20 @@ private fun Row1(ic: String, b: String, s: String, src: String, faded: Boolean =
             Text(s, style = SmallStyle.copy(fontSize = 12.5.sp))
         }
     }
-    Text(src.uppercase(), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp))
+    Text(I18n.upper(src), style = KickerStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.sp))
 }
 
 /** The mockup's dark button: it says what's missing until the day can be sealed, and offers re-sealing after edits. */
 @Composable
 private fun SealButton(model: AnnalesModel, day: Day, today: Boolean) {
-    val label = when {
+    val label = tr(when {
         model.busy -> "Sealing…"
         day.stamps.isEmpty() -> "Add a stamp to seal"
         day.mood == null -> if (today) "Choose your state of mind to seal" else "Choose a state of mind to seal"
         !day.sealed -> if (today) "Seal today" else "Seal this day"
         day.dirty -> "Save & re-seal"
         else -> if (today) "Sealed ✓ · change anything to edit" else "Sealed ✓ · no changes yet"
-    }
+    })
     val ready = !model.busy && day.stamps.isNotEmpty() && day.mood != null && (!day.sealed || day.dirty)
     val done = day.sealed && !day.dirty
     Button(
@@ -525,13 +528,13 @@ private fun SealButton(model: AnnalesModel, day: Day, today: Boolean) {
         modifier = Modifier.padding(horizontal = 16.dp).padding(top = 18.dp).fillMaxWidth().height(54.dp),
     ) { Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp) }
     if (ready && model.saveToPhotos) Text(
-        if (day.sealed) "The copies in Photos › Annales are updated too." else "Each stamp goes into Photos › Annales as you seal it.",
+        tr(if (day.sealed) "The copies in Photos › Annales are updated too." else "Each stamp goes into Photos › Annales as you seal it."),
         style = SmallStyle, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
 }
 
 @Composable
-fun InkChip(ink: Ink, selected: Boolean, label: String = ink.label, onClick: () -> Unit) {
+fun InkChip(ink: Ink, selected: Boolean, label: String = tr(ink.label), onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) Color(ink.argb) else K.line),
@@ -550,7 +553,7 @@ private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, 
     val past = model.onThisDay(date).firstOrNull() ?: return
     val s = past.stamps.first()
     val years = date.year - past.date.year
-    Sec("On this day", past.date.format(capDate))
+    Sec(tr("On this day"), capDate(past.date))
     Row(
         Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(K.page).paperGrain()
             .clickable { onOpen(past.date, s) }.padding(14.dp),
@@ -559,12 +562,12 @@ private fun OnThisDay(model: AnnalesModel, date: LocalDate, onOpen: (LocalDate, 
         StampView(model, s.id, past.date.dayOfYear, past.mood, 72.dp, rotation = -2f)
         Spacer(Modifier.size(18.dp))
         Column(Modifier.weight(1f)) {
-            Text((if (years == 1) "A year ago" else "$years years ago") + (past.mood?.let { " · ${com.annales.journal.data.Moods.names[it]}" } ?: ""), style = SmallStyle)
+            Text((if (years == 1) tr("A year ago") else tn(years, "{n} year ago", "{n} years ago")) + (past.mood?.let { " · ${tr(com.annales.journal.data.Moods.names[it])}" } ?: ""), style = SmallStyle)
             Text(
-                past.line.ifBlank { past.date.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH)) },
+                past.line.ifBlank { I18n.date(past.date, "EEEE d MMMM yyyy") },
                 style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = K.ink), maxLines = 2,
             )
-            if (past.stamps.size > 1) Text("${past.stamps.size} stamps that day", style = SmallStyle)
+            if (past.stamps.size > 1) Text(tn(past.stamps.size, "{n} stamp that day", "{n} stamps that day"), style = SmallStyle)
         }
     }
 }
@@ -573,7 +576,11 @@ private val SKY_GLYPH = com.annales.journal.render.SkyStamp.Weather.entries.asso
 
 /** Why a sibling's row is empty: not installed, or installed but not sharing yet. */
 private fun sourceNote(model: AnnalesModel, app: com.annales.journal.data.Siblings.App) =
-    when { !model.installed(app) -> "${app.name.substringBefore(" ")} isn't installed"; !model.canShare(app) -> "Update ${app.name.substringBefore(" ")} to share"; else -> "Nothing shared for this day yet" }
+    when {
+        !model.installed(app) -> tr("{app} isn't installed", "app" to app.name.substringBefore(" "))
+        !model.canShare(app) -> tr("Update {app} to share", "app" to app.name.substringBefore(" "))
+        else -> tr("Nothing shared for this day yet")
+    }
 
 /** Augur's colour(s) of the day: augur.colourHex, one hex or several separated by commas. */
 internal fun augurColours(x: Map<String, String>): List<Color> =

@@ -41,33 +41,31 @@ import com.annales.journal.data.Ink
 import com.annales.journal.data.Places
 import com.annales.journal.data.Stamp
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.annales.journal.I18n
+import com.annales.journal.tn
+import com.annales.journal.tr
 
-private val dShort = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
-private val dLong = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
-
-fun rangeText(c: Collection): String = when {
-    c.from == c.to -> c.from.format(dLong)
-    c.from.year == c.to.year && c.from.month == c.to.month -> "${c.from.dayOfMonth} – ${c.to.format(dLong)}"
-    c.from.year == c.to.year -> "${c.from.format(dShort)} – ${c.to.format(dLong)}"
-    else -> "${c.from.format(dLong)} – ${c.to.format(dLong)}"
+fun rangeText(c: Collection): String = I18n.range(c.from, c.to) ?: when {
+    c.from == c.to -> I18n.date(c.from, "d MMM yyyy")
+    c.from.year == c.to.year && c.from.month == c.to.month -> "${c.from.dayOfMonth} – ${I18n.date(c.to, "d MMM yyyy")}"
+    c.from.year == c.to.year -> "${I18n.date(c.from, "d MMM")} – ${I18n.date(c.to, "d MMM yyyy")}"
+    else -> "${I18n.date(c.from, "d MMM yyyy")} – ${I18n.date(c.to, "d MMM yyyy")}"
 }
 
 fun inkOf(c: Collection): Ink = c.ink?.let { runCatching { Ink.valueOf(it) }.getOrNull() } ?: Ink.OFFICIAL
 
 fun collLines(model: AnnalesModel, c: Collection): Pair<String, String> {
     val n = model.count(c)
-    val stamps = "$n stamp${if (n == 1) "" else "s"}"
+    val stamps = tn(n, "{n} stamp", "{n} stamps")
     return when (c.type) {
-        CollType.TRIP -> Places.of(c.place).let { "${rangeText(c)} · ${it.region}" to "$stamps · postmarked ${it.mark}" }
+        CollType.TRIP -> Places.of(c.place).let { "${rangeText(c)} · ${tr(it.region)}" to "$stamps · ${tr("postmarked {mark}", "mark" to it.mark)}" }
         CollType.EVENT -> rangeText(c) to stamps
         CollType.ANNIV -> {
             val years = model.entries(c).count { it.second.isNotEmpty() }
-            val md = LocalDate.of(2024, c.month, c.day).format(DateTimeFormatter.ofPattern("d MMMM", Locale.ENGLISH))
-            "Every $md · $years year${if (years == 1) "" else "s"} so far" to stamps
+            val md = I18n.date(LocalDate.of(2024, c.month, c.day), "d MMMM")
+            "${tr("Every {date}", "date" to md)} · ${tn(years, "{n} year so far", "{n} years so far")}" to stamps
         }
-        CollType.THEME -> "$n hand-picked stamp${if (n == 1) "" else "s"}" to "Add from any stamp's page"
+        CollType.THEME -> tn(n, "{n} hand-picked stamp", "{n} hand-picked stamps") to tr("Add from any stamp's page")
     }
 }
 
@@ -77,15 +75,15 @@ fun CollectionsScreen(model: AnnalesModel, onOpen: (Collection) -> Unit, onNew: 
     val all = model.collections.sortedByDescending { if (it.type == CollType.THEME || it.type == CollType.ANNIV) LocalDate.MIN else it.from }
     val list = all.filter { filter == null || it.type.name == filter }
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-        Header("${all.size} collection${if (all.size == 1) "" else "s"}", title("Your ", "collections"))
+        Header(tn(all.size, "{n} collection", "{n} collections"), title(tr("Your *collections*")))
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Chip("All ${all.size}", filter == null) { filter = null }
-            CollType.entries.forEach { t -> Chip("${t.plural} ${all.count { it.type == t }}", filter == t.name) { filter = t.name } }
+            Chip("${tr("All")} ${all.size}", filter == null) { filter = null }
+            CollType.entries.forEach { t -> Chip("${tr(t.plural)} ${all.count { it.type == t }}", filter == t.name) { filter = t.name } }
         }
         Spacer(Modifier.size(10.dp))
         if (list.isEmpty()) Text(
-            if (filter == null) "Nothing here yet. A trip, a wedding, an anniversary or a theme like Coffee: make one below."
-            else "No ${CollType.valueOf(filter!!).plural.lowercase()} yet.",
+            if (filter == null) tr("Nothing here yet. A trip, a wedding, an anniversary or a theme like Coffee: make one below.")
+            else tr("No ${CollType.valueOf(filter!!).plural.lowercase()} yet."),
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
         )
         list.forEach { c -> CollCard(model, c) { onOpen(c) } }
@@ -93,7 +91,7 @@ fun CollectionsScreen(model: AnnalesModel, onOpen: (Collection) -> Unit, onNew: 
             onClick = { onNew(filter?.let { CollType.valueOf(it) } ?: CollType.TRIP) },
             border = BorderStroke(1.5.dp, K.muted),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        ) { Text("＋ New collection", color = K.ink, fontWeight = FontWeight.SemiBold) }
+        ) { Text(tr("＋ New collection"), color = K.ink, fontWeight = FontWeight.SemiBold) }
     }
 }
 
@@ -116,7 +114,7 @@ private fun CollCard(model: AnnalesModel, c: Collection, onClick: () -> Unit) {
     ) {
         Box(Modifier.size(70.dp, 86.dp), contentAlignment = Alignment.Center) {
             if (cover != null) StampView(model, cover.second.id, cover.first.date.dayOfYear, cover.first.mood, 64.dp, rotation = -2f)
-            else Ghost(c.type, "empty")
+            else Ghost(c.type, tr("empty"))
         }
         Spacer(Modifier.size(14.dp))
         Column(Modifier.weight(1f)) {
@@ -132,7 +130,7 @@ fun TypeTag(c: Collection, withInk: Boolean = false) = Row(verticalAlignment = A
     Box(Modifier.size(8.dp).background(Color(inkOf(c).argb), CircleShape))
     Spacer(Modifier.size(6.dp))
     Text(
-        (c.type.label + if (withInk && c.type != CollType.THEME) " · ${inkOf(c).label} ink" else "").uppercase(),
+        I18n.upper(tr(c.type.label) + if (withInk && c.type != CollType.THEME) " · ${tr("{ink} ink", "ink" to tr(inkOf(c).label))}" else ""),
         style = KickerStyle.copy(fontSize = 12.sp),
     )
 }
@@ -162,9 +160,9 @@ fun CollectionScreen(
     val today = LocalDate.now()
     Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("‹ Collections", color = K.acc) }
+            TextButton(onClick = onBack) { Text(tr("‹ Collections"), color = K.acc) }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onEdit) { Text("Edit", color = K.acc, fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onEdit) { Text(tr("Edit"), color = K.acc, fontWeight = FontWeight.Bold) }
         }
         Row(
             Modifier.padding(horizontal = 16.dp).fillMaxWidth().background(K.page, RoundedCornerShape(18.dp)).padding(16.dp),
@@ -172,7 +170,7 @@ fun CollectionScreen(
         ) {
             Box(Modifier.size(100.dp, 124.dp), contentAlignment = Alignment.Center) {
                 if (cover != null) StampView(model, cover.second.id, cover.first.date.dayOfYear, cover.first.mood, 94.dp, rotation = -2f)
-                else Ghost(c.type, "cover")
+                else Ghost(c.type, tr("cover"))
             }
             Spacer(Modifier.size(14.dp))
             Column(Modifier.weight(1f)) {
@@ -188,31 +186,31 @@ fun CollectionScreen(
 
         if (c.type == CollType.THEME) {
             if (all.isEmpty()) Text(
-                "Empty for now. Open any stamp and tap ＋ ${c.name} to add it here.",
+                tr("Empty for now. Open any stamp and tap ＋ {name} to add it here.", "name" to c.name),
                 style = SmallStyle, modifier = Modifier.padding(22.dp),
             ) else StampGrid(model, all) { (d, s) -> onOpenStamp(d, s, all) }
         } else entries.forEachIndexed { i, (d, ss) ->
-            val label = if (c.type == CollType.ANNIV) "${d.date.year} · ${d.date.dayOfWeek.name.lowercase().replaceFirstChar { it.titlecase() }}"
-            else "Day ${i + 1} · ${d.date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))}"
+            val label = if (c.type == CollType.ANNIV) "${d.date.year} · ${I18n.cap(I18n.date(d.date, "EEEE"))}"
+            else "${tr("Day {n}", "n" to i + 1)} · ${I18n.date(d.date, "EEE d MMM")}"
             Column(Modifier.padding(horizontal = 22.dp, vertical = 8.dp)) {
-                Text(label.uppercase(), style = KickerStyle.copy(fontSize = 12.sp))
+                Text(I18n.upper(label), style = KickerStyle.copy(fontSize = 12.sp))
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     ss.forEach { s ->
                         StampView(model, s.id, d.date.dayOfYear, d.mood, 66.dp,
                             modifier = Modifier.clickable { onOpenStamp(d.date, s, all) })
                     }
                     when {
-                        d.date.isAfter(today) -> Text("Not yet. Stamps you seal that day land here.", style = SmallStyle)
+                        d.date.isAfter(today) -> Text(tr("Not yet. Stamps you seal that day land here."), style = SmallStyle)
                         !d.sealed && d.stamps.isNotEmpty() -> TextButton(onClick = { onOpenDay(d.date) }) {
-                            Text("Seal this day to add it here", color = K.acc, fontWeight = FontWeight.Bold)
+                            Text(tr("Seal this day to add it here"), color = K.acc, fontWeight = FontWeight.Bold)
                         }
-                        !d.sealed -> TextButton(onClick = { onOpenDay(d.date) }) { Text("＋ Add a stamp", color = K.acc) }
+                        !d.sealed -> TextButton(onClick = { onOpenDay(d.date) }) { Text(tr("＋ Add a stamp"), color = K.acc) }
                     }
                 }
             }
         }
         if (c.type == CollType.ANNIV && entries.isEmpty()) Text(
-            "Seal a day on this date and it lands here, every year.",
+            tr("Seal a day on this date and it lands here, every year."),
             style = SmallStyle, modifier = Modifier.padding(22.dp),
         )
     }

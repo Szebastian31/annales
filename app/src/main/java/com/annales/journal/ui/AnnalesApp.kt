@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
+import com.annales.journal.I18n
+import com.annales.journal.tr
 import com.annales.journal.data.Collection
 import com.annales.journal.data.Stamp
 import com.annales.journal.render.Photos
@@ -87,7 +89,7 @@ fun AnnalesApp(model: AnnalesModel) {
         val date = pickFor
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { Photos.load(context, uri) }
-            if (bmp == null) model.message = "Couldn't open that photo." else cropping = Cropping(date, bmp, replacing, addPlace)
+            if (bmp == null) model.message = tr("Couldn't open that photo.") else cropping = Cropping(date, bmp, replacing, addPlace)
             replacing = null
         }
     }
@@ -96,7 +98,7 @@ fun AnnalesApp(model: AnnalesModel) {
     fun recrop(date: LocalDate, s: Stamp) {
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { model.original(s) }
-            if (bmp == null) model.message = "The original photo isn't kept for this stamp." else cropping = Cropping(date, bmp, s, null)
+            if (bmp == null) model.message = tr("The original photo isn't kept for this stamp.") else cropping = Cropping(date, bmp, s, null)
         }
     }
     fun pickPhoto(date: LocalDate) {
@@ -108,7 +110,7 @@ fun AnnalesApp(model: AnnalesModel) {
         if (!ok) { replacing = null; return@rememberLauncherForActivityResult }
         scope.launch {
             val bmp = withContext(Dispatchers.IO) { Photos.load(context, android.net.Uri.fromFile(shot)) }
-            if (bmp == null) model.message = "Couldn't open the photo you took." else cropping = Cropping(date, bmp, replacing, addPlace)
+            if (bmp == null) model.message = tr("Couldn't open the photo you took.") else cropping = Cropping(date, bmp, replacing, addPlace)
             replacing = null
         }
     }
@@ -116,7 +118,7 @@ fun AnnalesApp(model: AnnalesModel) {
         pickFor = date; adding = null
         shot.parentFile?.mkdirs()
         val uri = androidx.core.content.FileProvider.getUriForFile(context, "com.annales.journal.camera", shot)
-        runCatching { camera.launch(uri) }.onFailure { model.message = "No camera app on this phone."; replacing = null }
+        runCatching { camera.launch(uri) }.onFailure { model.message = tr("No camera app on this phone."); replacing = null }
     }
     fun viewDay(date: LocalDate, s: Stamp) {
         val list = model.day(date).stamps.map { date to it }
@@ -162,7 +164,7 @@ fun AnnalesApp(model: AnnalesModel) {
                         else Column {
                             BackHandler(enabled = stamps.isNotEmpty() && !overlay) { edit = false }
                             TextButton(onClick = { if (stamps.isNotEmpty()) edit = false else openDay = null }, modifier = Modifier.padding(start = 8.dp)) {
-                                Text(if (stamps.isNotEmpty()) "‹ Stamp" else "‹ ${coll?.name ?: "Journal"}", color = K.acc)
+                                Text(if (stamps.isNotEmpty()) tr("‹ Stamp") else "‹ ${coll?.name ?: tr("Journal")}", color = K.acc)
                             }
                             DayPage(model, day, onAdd = { add(day) }, onOpen = { viewDay(day, it) }, onOpenPast = { d, s -> viewDay(d, s) }, onReplace = { replace(day, it) }, onRecrop = { recrop(day, it) })
                         }
@@ -196,9 +198,9 @@ fun AnnalesApp(model: AnnalesModel) {
                 model, c, onClose = { editing = null },
                 onSaved = { saved ->
                     editing = null; tab = Tab.COLLECTIONS; openColl = saved.id
-                    model.message = if (c.id == 0L) "${saved.name} created." else "${saved.name} saved."
+                    model.message = if (c.id == 0L) tr("{name} created.", "name" to saved.name) else tr("{name} saved.", "name" to saved.name)
                 },
-                onDeleted = { editing = null; openColl = null; model.message = "Collection deleted. Its stamps are still in your journal." },
+                onDeleted = { editing = null; openColl = null; model.message = tr("Collection deleted. Its stamps are still in your journal.") },
             )
         }
         viewing?.let { v -> Viewer(model, v.items, v.start, v.inside) { viewing = null } }
@@ -242,7 +244,7 @@ private fun DaySwitch(model: AnnalesModel, back: Int, onBack: (Int) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    when (b) { 0 -> "Today"; 1 -> "Yesterday"; else -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE d", java.util.Locale.ENGLISH)) },
+                    when (b) { 0 -> tr("Today"); 1 -> tr("Yesterday"); else -> I18n.date(date, "EEE d") },
                     maxLines = 1, style = SmallStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (on) K.surface else K.ink),
                 )
                 val started = day.stamps.isNotEmpty() || day.mood != null
@@ -269,7 +271,7 @@ private fun TabBar(current: Tab, onTab: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 TabIcon(t, if (on) K.acc else K.muted)
-                Text(t.label, maxLines = 1, style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted))
+                Text(tr(t.label), maxLines = 1, style = TextStyle(fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, color = if (on) K.acc else K.muted))
                 Box(Modifier.padding(top = 3.dp).size(4.dp).background(if (on) K.acc else Color.Transparent, CircleShape))
             }
         }
@@ -315,7 +317,7 @@ private fun AddSheet(
                 .clickable(enabled = false) { }.navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 12.dp)
         ) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(width = 36.dp, height = 4.dp).background(K.line, RoundedCornerShape(2.dp)))
-            Text(if (replacing != null) "Replace this stamp" else "Add a stamp", style = TitleStyle.copy(fontSize = 24.sp, lineHeight = 28.sp))
+            Text(if (replacing != null) tr("Replace this stamp") else tr("Add a stamp"), style = TitleStyle.copy(fontSize = 24.sp, lineHeight = 28.sp))
 
             Row(
                 Modifier.padding(top = 12.dp).fillMaxWidth().background(K.page, RoundedCornerShape(14.dp)).clickable { choosing = true }
@@ -324,21 +326,21 @@ private fun AddSheet(
             ) {
                 Text("📍", fontSize = 16.sp)
                 Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                    Text("TAKEN IN", style = KickerStyle)
+                    Text(I18n.upper(tr("Taken in")), style = KickerStyle)
                     Text(place.ifBlank { home }, style = BodyStyle.copy(fontWeight = FontWeight.Bold))
                 }
-                Text("Change", style = SmallStyle.copy(color = K.acc, fontWeight = FontWeight.Bold))
+                Text(tr("Change"), style = SmallStyle.copy(color = K.acc, fontWeight = FontWeight.Bold))
             }
 
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
-                Source("◉", "Take a photo", "Right now", Modifier.weight(1f), onCamera)
-                Source("▦", "From library", "Any photo", Modifier.weight(1f), onPhoto)
+                Source("◉", tr("Take a photo"), tr("Right now"), Modifier.weight(1f), onCamera)
+                Source("▦", tr("From library"), tr("Any photo"), Modifier.weight(1f), onPhoto)
             }
 
-            Text("OR THE DAY'S SKY", style = KickerStyle, modifier = Modifier.padding(top = 20.dp, bottom = 3.dp))
+            Text(I18n.upper(tr("Or the day's sky")), style = KickerStyle, modifier = Modifier.padding(top = 20.dp, bottom = 3.dp))
             Text(
-                if (suggested != null) "Consensus Weather says ${suggested.label.lowercase()}. Drawn with that night's moon, in the day's mood colour."
-                else "Drawn with that night's moon, in the day's mood colour.",
+                if (suggested != null) tr("Consensus Weather says {weather}. Drawn with that night's moon, in the day's mood colour.", "weather" to tr(suggested.label).lowercase(I18n.locale))
+                else tr("Drawn with that night's moon, in the day's mood colour."),
                 style = SmallStyle,
             )
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
@@ -352,13 +354,13 @@ private fun AddSheet(
                             previews[wx]?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                         }
                         Text(
-                            wx.label.substringBefore(" "), maxLines = 1, modifier = Modifier.padding(top = 5.dp),
+                            tr(wx.label.substringBefore(" ")), maxLines = 1, modifier = Modifier.padding(top = 5.dp),
                             style = SmallStyle.copy(fontSize = 12.sp, color = if (on) K.acc else K.ink, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
                         )
                     }
                 }
             }
-            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Cancel", color = K.muted) }
+            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text(tr("Cancel"), color = K.muted) }
         }
     }
     if (choosing) PlaceDialog(place, home, model.placeSuggestions(date), onDismiss = { choosing = false }) { onPlace(it); choosing = false }

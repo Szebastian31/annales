@@ -18,6 +18,9 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import com.annales.journal.I18n
+import com.annales.journal.tn
+import com.annales.journal.tr
 
 /** A soft nudge at 21:30 if today is still unsealed. Inexact on purpose: no exact-alarm permission needed. */
 object Reminder {
@@ -41,18 +44,19 @@ object Reminder {
     )
 
     fun notifyIfUnsealed(context: Context) {
+        I18n.load(context) // the alarm may start Annales without its screen
         val today = JournalStore(context).load()[LocalDate.now()]
         if (today?.sealed == true) return
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.reminder_channel), NotificationManager.IMPORTANCE_DEFAULT))
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Evening reminder"), NotificationManager.IMPORTANCE_DEFAULT))
         }
         val open = PendingIntent.getActivity(
             context, 1, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val text = if (today == null || today.stamps.isEmpty()) "Today is still unsealed. Pick a photo before midnight."
-        else "Today is still unsealed. Your ${if (today.stamps.size == 1) "stamp is" else "stamps are"} waiting for the postmark."
+        val text = if (today == null || today.stamps.isEmpty()) tr("Today is still unsealed. Pick a photo before midnight.")
+        else tn(today.stamps.size, "Today is still unsealed. Your stamp is waiting for the postmark.", "Today is still unsealed. Your stamps are waiting for the postmark.")
         val n = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_annales)
             .setColor(0xFF9B2F35.toInt())

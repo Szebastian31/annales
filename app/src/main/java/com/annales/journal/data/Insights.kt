@@ -1,8 +1,12 @@
 package com.annales.journal.data
 
+import com.annales.journal.I18n
+import com.annales.journal.tn
+import com.annales.journal.tr
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -46,7 +50,7 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
             val n = if (r == Range.WEEK) 7 else 30
             (n - 1 downTo 0).map { back ->
                 val date = today.minusDays(back.toLong())
-                val label = if (r == Range.WEEK) date.dayOfWeek.name.take(1) else if (date.dayOfMonth % 5 == 1) "${date.dayOfMonth}" else ""
+                val label = if (r == Range.WEEK) I18n.date(date, "EEEEE") else if (date.dayOfMonth % 5 == 1) "${date.dayOfMonth}" else ""
                 Column(label, listOfNotNull(felt.firstOrNull { it.date == date }?.mood), onTrip(date))
             }
         }
@@ -88,13 +92,16 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         private val n get() = minOf(a.size, b.size)
         /** 0 too early, 1 no clear difference, 2 weak hint, 3 clear hint. */
         val level get() = when { n < 5 -> 0; abs(diff) < .4 -> 1; n >= 15 && abs(diff) >= .9 -> 3; else -> 2 }
-        val label get() = listOf("Too early to tell", "No clear difference", "Weak hint", "Clear hint")[level]
+        val label get() = tr(listOf("Too early to tell", "No clear difference", "Weak hint", "Clear hint")[level])
         val sentence get() = when (level) {
-            0 -> "Only $n day${if (n == 1) "" else "s"} so far in one group"
-            1 -> "About the same either way"
-            else -> "About ${"%.1f".format(abs(diff))} steps ${if (diff > 0) "more pleasant" else "less pleasant"}"
+            0 -> tn(n, "Only {n} day so far in one group", "Only {n} days so far in one group")
+            1 -> tr("About the same either way")
+            else -> tr(if (diff > 0) "About {n} steps more pleasant" else "About {n} steps less pleasant", "n" to String.format(Locale.ROOT, "%.1f", abs(diff)))
         }
     }
+
+    private fun weekendDays() = if (I18n.lang == "en") "Sat · Sun"
+        else "${I18n.date(LocalDate.of(2026, 11, 7), "EEE")} · ${I18n.date(LocalDate.of(2026, 11, 8), "EEE")}"
 
     fun links(): List<Link> {
         val (onTrip, home) = felt.partition { onTrip(it.date) }
@@ -103,11 +110,11 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         val (friends, noFriends) = felt.partition { "Friends" in it.factors || "Family" in it.factors || "Partner" in it.factors }
         val (stamped, bare) = felt.partition { it.stamps.size >= 2 }
         return (listOf(
-            Link("✈", "Trips", onTrip, home, "On a trip", "At home"),
-            Link("♡", "Your people", friends, noFriends, "Friends, family, partner", "Other days"),
-            Link("☕", "Weekends", weekend, weekday, "Sat · Sun", "Weekdays"),
-            Link("❏", "Busy days", stamped, bare, "2–3 stamps", "0–1 stamp"),
-            Link("☾", "Full moon", full, other, "Near full", "Other nights"),
+            Link("✈", tr("Trips"), onTrip, home, tr("On a trip"), tr("At home")),
+            Link("♡", tr("Your people"), friends, noFriends, tr("Friends, family, partner"), tr("Other days")),
+            Link("☕", tr("Weekends"), weekend, weekday, weekendDays(), tr("Weekdays")),
+            Link("❏", tr("Busy days"), stamped, bare, tr("2–3 stamps"), tr("0–1 stamp")),
+            Link("☾", tr("Full moon"), full, other, tr("Near full"), tr("Other nights")),
         ) + appLinks()).sortedWith(compareByDescending<Link> { it.level }.thenByDescending { abs(it.diff) })
     }
 
@@ -120,20 +127,20 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         val wx = felt.filter { it.extras["wx.code"] != null }
         if (wx.isNotEmpty()) {
             val (sun, rest) = wx.partition { (it.extras["wx.code"]?.toIntOrNull() ?: 99) <= 1 }
-            out += Link("☀", "Sunny days", sun, rest, "Clear sky", "Cloud, rain, fog")
+            out += Link("☀", tr("Sunny days"), sun, rest, tr("Clear sky"), tr("Cloud, rain, fog"))
         }
         val mus = felt.filter { it.extras["music.minutes"]?.toIntOrNull() != null }
         if (mus.isNotEmpty()) {
             val mid = mus.mapNotNull { it.extras["music.minutes"]?.toIntOrNull() }.sorted().let { it[it.size / 2] }
             val (lots, little) = mus.partition { (it.extras["music.minutes"]?.toIntOrNull() ?: 0) > mid }
-            out += Link("♪", "Lots of music", lots, little, "Over $mid min", "$mid min or less")
+            out += Link("♪", tr("Lots of music"), lots, little, tr("Over {n} min", "n" to mid), tr("{n} min or less", "n" to mid))
         }
         val money = felt.filter { it.extras["money.spentN"] != null && it.extras["money.safeN"] != null }
         if (money.isNotEmpty()) {
             val (within, over) = money.partition {
                 (it.extras["money.spentN"]?.toDoubleOrNull() ?: 0.0) <= (it.extras["money.safeN"]?.toDoubleOrNull() ?: 0.0)
             }
-            out += Link("¤", "Within budget", within, over, "Spent ≤ safe", "Spent more")
+            out += Link("¤", tr("Within budget"), within, over, tr("Spent ≤ safe"), tr("Spent more"))
         }
         return out
     }
@@ -143,11 +150,12 @@ class Insights(days: Iterable<Day>, private val trips: List<Collection>, private
         val recent = felt.takeLast(4)
         val low = recent.count { it.mood!! <= 2 } >= 3
         val top = felt.filter { it.mood!! >= 5 }.flatMap { it.factors }.groupingBy { it }.eachCount()
-            .entries.sortedByDescending { it.value }.take(2).map { it.key }
+            .entries.sortedByDescending { it.value }.take(2).map { tr(it.key) }
+        val both = if (top.size > 1) tr("{a} and {b}", "a" to top[0], "b" to top[1]) else top.firstOrNull() ?: ""
         return when {
-            low && top.isNotEmpty() -> "A few heavier days lately. On your more pleasant days you often tagged ${top.joinToString(" and ")}."
-            low -> "A few heavier days lately. Be gentle with yourself."
-            top.isNotEmpty() -> "Your most pleasant days often involve ${top.joinToString(" and ")}."
+            low && top.isNotEmpty() -> tr("A few heavier days lately. On your more pleasant days you often tagged {tags}.", "tags" to both)
+            low -> tr("A few heavier days lately. Be gentle with yourself.")
+            top.isNotEmpty() -> tr("Your most pleasant days often involve {tags}.", "tags" to both)
             else -> null
         }
     }

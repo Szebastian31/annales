@@ -14,8 +14,8 @@ android {
         applicationId = "com.annales.journal"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "1.0.0"
+        versionCode = 16
+        versionName = "1.1.0"
     }
 
     // The family's debug key (copied from Fidelis), so every build installs over the last one.
@@ -36,7 +36,16 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // the translations are the web app's own files, so both apps always say the same thing
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/annales-i18n"))
 }
+
+val copyI18n by tasks.registering(Copy::class) {
+    from(rootProject.file("docs/i18n")) { include("*.js") }
+    into(layout.buildDirectory.dir("generated/annales-i18n/i18n"))
+}
+tasks.named("preBuild") { dependsOn(copyI18n) }
 
 dependencies {
     implementation(libs.androidx.core.ktx)

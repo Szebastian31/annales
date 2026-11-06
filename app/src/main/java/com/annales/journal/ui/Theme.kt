@@ -106,6 +106,9 @@ fun title(plain: String, em: String): AnnotatedString = buildAnnotatedString {
     withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = K.acc)) { append(em) }
 }
 
+/** The same from one translated line, the accent between asterisks: tr("The *journal*"), as the web app writes it. */
+fun title(text: String): AnnotatedString = text.split("*").let { p -> title(p[0], p.getOrElse(1) { "" }).let { if (p.size > 2) it + AnnotatedString(p[2]) else it } }
+
 val TitleStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 30.sp, lineHeight = 34.sp, color = K.ink)
 val KickerStyle get() = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, color = K.muted)
 val BodyStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 21.sp, color = K.ink)
@@ -114,7 +117,7 @@ val SmallStyle get() = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14
 @Composable
 fun Header(kicker: String, title: AnnotatedString, modifier: Modifier = Modifier) {
     androidx.compose.foundation.layout.Column(modifier.padding(horizontal = 22.dp, vertical = 14.dp)) {
-        Text(kicker.uppercase(), style = KickerStyle)
+        Text(com.annales.journal.I18n.upper(kicker), style = KickerStyle)
         Text(title, style = TitleStyle, modifier = Modifier.padding(top = 4.dp))
     }
 }

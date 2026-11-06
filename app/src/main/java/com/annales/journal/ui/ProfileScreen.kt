@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.annales.journal.AnnalesModel
 import com.annales.journal.data.Ink
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.annales.journal.I18n
+import com.annales.journal.tr
 
 @Composable
 fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
@@ -53,7 +53,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
     val stamps = model.days.values.sumOf { it.stamps.size }
     val sealed = model.days.values.count { it.sealed }
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-        Header("Profile & settings", title("Your ", "post office"))
+        Header(tr("Profile & settings"), title(tr("Your *post office*")))
         val ins = remember(model.days) { com.annales.journal.data.Insights(model.days.values, model.collections) }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -66,13 +66,13 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                         model.name, model::changeName, singleLine = true,
                         textStyle = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = K.ink),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(K.acc),
-                        decorationBox = { inner -> Box { if (model.name.isEmpty()) Text("Your name", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = K.muted)); inner() } },
+                        decorationBox = { inner -> Box { if (model.name.isEmpty()) Text(tr("Your name"), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 21.sp, color = K.muted)); inner() } },
                     )
-                    Text("${prettyOffice(model.office).substringBefore(" ")} · keeping annales since ${model.since.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH))}", style = SmallStyle)
+                    Text("${prettyOffice(model.office).substringBefore(" ")} · ${tr("keeping annales since {date}", "date" to I18n.date(model.since, "MMM yyyy"))}", style = SmallStyle)
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                listOf(stamps to "stamps", sealed to "days", ins.streak to "streak", model.collections.size to "collections").forEach { (n, l) ->
+                listOf(stamps to tr("stamps"), sealed to tr("days"), ins.streak to tr("streak"), model.collections.size to tr("collections")).forEach { (n, l) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$n", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 22.sp, color = K.ink))
                         Text(l, style = SmallStyle.copy(fontSize = 12.5.sp))
@@ -81,7 +81,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             }
         }
 
-        Section("Look", K.look.label)
+        Section(tr("Look"), tr(K.look.label))
         Card {
             Look.entries.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -91,38 +91,38 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
         }
 
         val about = StampRendererCuts.firstOrNull { it.first == model.cut }
-        Section("Perforation", about?.second ?: "")
+        Section(tr("Perforation"), about?.second?.let { tr(it) } ?: "")
         Card {
             StampRendererCuts.chunked(5).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    row.forEach { (k, n, _) -> CutTile(k, n, model.cut == k, Modifier.weight(1f)) { model.changeCut(k) } }
+                    row.forEach { (k, n, _) -> CutTile(k, tr(n), model.cut == k, Modifier.weight(1f)) { model.changeCut(k) } }
                 }
             }
-            Text("${about?.second ?: ""}: ${about?.third ?: ""}. Unsealed stamps are re-cut straight away; sealed ones keep their edge.", style = SmallStyle)
+            Text(tr("{cut}: {about}. Unsealed stamps are re-cut straight away; sealed ones keep their edge.", "cut" to tr(about?.second ?: ""), "about" to tr(about?.third ?: "")), style = SmallStyle)
         }
 
-        Section("Default postmark ink")
+        Section(tr("Default postmark ink"))
         Card {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Ink.entries.forEach { ink -> InkChip(ink, ink == model.ink, label = if (ink == Ink.OFFICIAL) "Official · Poczta Polska" else ink.label) { model.changeInk(ink) } }
+                Ink.entries.forEach { ink -> InkChip(ink, ink == model.ink, label = if (ink == Ink.OFFICIAL) "${tr("Official")} · Poczta Polska" else tr(ink.label)) { model.changeInk(ink) } }
             }
             Text(
-                "Official stamps it the way the local post office would: black ink and their own layout. A Poczta Polska datownik at home, the city's own office on a trip. Any other ink is your own touch.",
+                tr("Official stamps it the way the local post office would: black ink and their own layout. A Poczta Polska datownik at home, the city's own office on a trip. Any other ink is your own touch."),
                 style = SmallStyle, modifier = Modifier.padding(top = 10.dp),
             )
-            OutlinedTextField(model.office, model::changeOffice, label = { Text("Your post office") }, singleLine = true, colors = fieldColors, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+            OutlinedTextField(model.office, model::changeOffice, label = { Text(tr("Your post office")) }, singleLine = true, colors = fieldColors, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
             Spacer(Modifier.size(8.dp))
-            OutlinedTextField(model.postcode, model::changePostcode, label = { Text("Postcode") }, singleLine = true, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-            Text("Printed round your datownik: the office over the top, the postcode underneath.", style = SmallStyle, modifier = Modifier.padding(top = 8.dp))
+            OutlinedTextField(model.postcode, model::changePostcode, label = { Text(tr("Postcode")) }, singleLine = true, colors = fieldColors, modifier = Modifier.fillMaxWidth())
+            Text(tr("Printed round your datownik: the office over the top, the postcode underneath."), style = SmallStyle, modifier = Modifier.padding(top = 8.dp))
         }
 
-        Section("Photos")
+        Section(tr("Photos"))
         Card {
-            Toggle("Save sealed stamps to Photos", "Each stamp goes into an \"Annales\" album on your phone: the clean perforated stamp, without the postmark ink", model.saveToPhotos, model::changeSaveToPhotos)
-            Toggle("Keep original photos", "So you can re-crop a stamp any time", model.keepOriginals, model::changeKeepOriginals)
+            Toggle(tr("Save sealed stamps to Photos"), tr("Each stamp goes into an “Annales” album on your phone: the clean perforated stamp, without the postmark ink"), model.saveToPhotos, model::changeSaveToPhotos)
+            Toggle(tr("Keep original photos"), tr("So you can re-crop a stamp any time"), model.keepOriginals, model::changeKeepOriginals)
         }
 
-        Section("Postmark sources", "sibling apps")
+        Section(tr("Postmark sources"), tr("sibling apps"))
         Card {
             val ctx = androidx.compose.ui.platform.LocalContext.current
             val S = com.annales.journal.data.Siblings
@@ -135,13 +135,13 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
             ).forEach { (app, prefix, how) ->
                 val has = model.installed(app)
                 val status = when {
-                    prefix == "" -> "calculated here" to K.green
-                    prefix == "wx." && model.hasShared(prefix) -> "same 13 models" to K.green
-                    prefix == "wx." -> "fetched when online" to K.muted
-                    !has -> "not installed" to K.muted
-                    !model.canShare(app) -> "needs its update" to K.acc
-                    model.hasShared(prefix) -> "connected" to K.green
-                    else -> "ready · nothing yet" to K.green
+                    prefix == "" -> tr("calculated here") to K.green
+                    prefix == "wx." && model.hasShared(prefix) -> tr("same 13 models") to K.green
+                    prefix == "wx." -> tr("fetched when online") to K.muted
+                    !has -> tr("not installed") to K.muted
+                    !model.canShare(app) -> tr("needs its update") to K.acc
+                    model.hasShared(prefix) -> tr("connected") to K.green
+                    else -> tr("ready · nothing yet") to K.green
                 }
                 Row(
                     Modifier.fillMaxWidth().clickable(enabled = has) {
@@ -151,28 +151,61 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(app.name, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
-                        Text(app.what, style = SmallStyle)
+                        Text(tr(app.what), style = SmallStyle)
                     }
                     Text(status.first, style = SmallStyle.copy(fontSize = 12.5.sp, color = status.second, fontWeight = FontWeight.Bold))
                     if (has) Text("  ›", style = BodyStyle.copy(color = K.muted))
                 }
             }
             Text(
-                "Weather is the Consensus Weather forecast, fetched from Open-Meteo for your post office's town (or the trip's city). Fidelis, Kalendae and Augur each hand Annales a one-line summary of the day; nothing leaves your phone.",
+                tr("Weather is the Consensus Weather forecast, fetched from Open-Meteo for your post office's town (or the trip's city). Fidelis, Kalendae and Augur each hand Annales a one-line summary of the day; nothing leaves your phone."),
                 style = SmallStyle, modifier = Modifier.padding(top = 6.dp),
             )
         }
 
-        Section("Ritual & privacy")
+        LanguageCard()
+
+        Section(tr("Ritual & privacy"))
         Card {
-            Toggle("Evening reminder", "A soft nudge at 21:30 if today is still unsealed", model.reminder, model::changeReminder)
-            Toggle("Seal haptics", "The satisfying thunk when you seal", model.haptics, model::changeHaptics)
-            Toggle("On this phone only", "No account, no cloud, no analytics. Internet only for the weather", true, null)
+            Toggle(tr("Evening reminder"), tr("A soft nudge at 21:30 if today is still unsealed"), model.reminder, model::changeReminder)
+            Toggle(tr("Seal haptics"), tr("The satisfying thunk when you seal"), model.haptics, model::changeHaptics)
+            Toggle(tr("On this phone only"), tr("No account, no cloud, no analytics. Internet only for the weather"), true, null)
             BackupRow(model)
         }
+        val ctx = androidx.compose.ui.platform.LocalContext.current
         Text(
-            "Annales 0.8.0 · pre-release.",
+            "Annales " + (runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""),
             style = SmallStyle, modifier = Modifier.padding(horizontal = 22.dp, vertical = 14.dp),
+        )
+    }
+}
+
+/** Annales' language: the phone's, or one of the 33. Picking one restarts the screen in it. */
+@Composable
+private fun LanguageCard() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var open by remember { mutableStateOf(false) }
+    val chosen = remember { I18n.chosen(ctx) }
+    val name = { code: String -> I18n.LANGS.firstOrNull { it.first == code }?.second }
+    val pick = { code: String ->
+        open = false
+        if (code != chosen) { I18n.choose(ctx, code); (ctx as? android.app.Activity)?.recreate() }
+    }
+    Section(tr("Language"), name(I18n.lang) ?: "")
+    Card {
+        Box {
+            Row(Modifier.fillMaxWidth().clickable { open = true }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(name(chosen) ?: tr("Same as the phone"), style = BodyStyle.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
+                Text("▾", style = BodyStyle.copy(color = K.muted))
+            }
+            androidx.compose.material3.DropdownMenu(open, { open = false }) {
+                androidx.compose.material3.DropdownMenuItem({ Text(tr("Same as the phone")) }, { pick("") })
+                I18n.LANGS.forEach { (code, n, _) -> androidx.compose.material3.DropdownMenuItem({ Text(n) }, { pick(code) }) }
+            }
+        }
+        Text(
+            tr("Annales reloads in the new language. Your journal stays as it is; postmarks and stamps are never translated."),
+            style = SmallStyle, modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
@@ -181,7 +214,7 @@ fun ProfileScreen(model: AnnalesModel, modifier: Modifier = Modifier) {
 private fun Section(name: String, right: String = "") = Row(
     Modifier.fillMaxWidth().padding(start = 22.dp, end = 22.dp, top = 22.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically,
 ) {
-    Text(name.uppercase(), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
+    Text(I18n.upper(name), style = KickerStyle.copy(fontSize = 12.sp), modifier = Modifier.weight(1f))
     if (right.isNotBlank()) Text(right, style = SmallStyle.copy(fontSize = 12.5.sp))
 }
 
@@ -218,8 +251,8 @@ private fun LookTile(l: Look, on: Boolean, modifier: Modifier, onClick: () -> Un
         Spacer(Modifier.size(4.dp))
         Box(Modifier.weight(1f).height(4.dp).background(Color(l.ink).copy(alpha = .5f), RoundedCornerShape(2.dp)))
     }
-    Text(l.label, style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
-    Text(l.about, style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(l.muted)))
+    Text(tr(l.label), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 15.sp, color = Color(l.ink)), modifier = Modifier.padding(top = 6.dp))
+    Text(tr(l.about), style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(l.muted)))
 }
 
 /** The edge drawn as a little stamp shape. */
@@ -254,35 +287,35 @@ private fun BackupRow(model: AnnalesModel) {
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             when (model.backupLocked(uri)) {
-                false -> model.message = "That file isn't an Annales backup."
+                false -> model.message = tr("That file isn't an Annales backup.")
                 true -> { pending = uri; pw = ""; ask = "open" }
                 null -> model.restoreFrom(uri, null) { }
             }
         }
     }
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text("Encrypted backup file", style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
-        Text("Everything, photos included, in the same format as Kalendae. Lock it with a password (AES-256).", style = SmallStyle)
+        Text(tr("Encrypted backup file"), style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
+        Text(tr("Everything, photos included, in the same format as Kalendae. Lock it with a password (AES-256)."), style = SmallStyle)
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pw = ""; ask = "save" }, enabled = !model.busy) { Text("Save a backup", color = K.ink) }
+            OutlinedButton(onClick = { pw = ""; ask = "save" }, enabled = !model.busy) { Text(tr("Save a backup"), color = K.ink) }
             OutlinedButton(onClick = { open.launch(arrayOf("application/json", "application/octet-stream", "*/*")) }, enabled = !model.busy) {
-                Text("Restore…", color = K.ink)
+                Text(tr("Restore…"), color = K.ink)
             }
         }
     }
     ask?.let { which ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { ask = null },
-            title = { Text(if (which == "save") "Lock the backup?" else "This backup is locked") },
+            title = { Text(if (which == "save") tr("Lock the backup?") else tr("This backup is locked")) },
             text = {
                 Column {
                     Text(
-                        if (which == "save") "Type a password to lock it, or leave it empty. There's no way to open a locked backup without it."
-                        else "Type the password it was saved with. Restoring replaces everything on this phone.",
+                        if (which == "save") tr("Type a password to lock it, or leave it empty. There's no way to open a locked backup without it.")
+                        else tr("Type the password it was saved with. Restoring replaces everything on this phone."),
                         style = SmallStyle,
                     )
                     OutlinedTextField(
-                        pw, { pw = it }, singleLine = true, label = { Text("Password") },
+                        pw, { pw = it }, singleLine = true, label = { Text(tr("Password")) },
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     )
@@ -293,9 +326,9 @@ private fun BackupRow(model: AnnalesModel) {
                     ask = null
                     if (which == "save") save.launch("annales-backup-${java.time.LocalDate.now()}.json")
                     else pending?.let { u -> model.restoreFrom(u, pw) { }; pw = "" }
-                }) { Text(if (which == "save") "Choose where" else "Restore", color = K.acc, fontWeight = FontWeight.Bold) }
+                }) { Text(if (which == "save") tr("Choose where") else tr("Restore"), color = K.acc, fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = null }) { Text("Cancel", color = K.muted) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { ask = null }) { Text(tr("Cancel"), color = K.muted) } },
             containerColor = K.surface,
         )
     }

@@ -1,5 +1,6 @@
 package com.annales.journal.ui
 
+import com.annales.journal.tr
 import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -81,10 +82,10 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
 
     Column(Modifier.fillMaxSize().background(Color(0xFF1F1A16)).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onCancel) { Text("Cancel", color = Color.White) }
+            TextButton(onClick = onCancel) { Text(tr("Cancel"), color = Color.White) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Drag · pinch to resize", style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xB3FFFFFF)))
-                Text("Frame the memory", style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = Color.White))
+                Text(tr("Drag · pinch to resize"), style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xB3FFFFFF)))
+                Text(tr("Frame the memory"), style = TextStyle(fontWeight = FontWeight.SemiBold, fontFamily = K.serif, fontSize = 18.sp, color = Color.White))
             }
             TextButton(onClick = {
                 val f = frame()
@@ -95,7 +96,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
                 val h = (f.height / scale).roundToInt().coerceIn(1, photo.height - top)
                 val part = Bitmap.createBitmap(photo, left, top, w, h)
                 onDone(com.annales.journal.render.Filters.apply(Bitmap.createScaledBitmap(part, pw, ph, true), filter))
-            }) { Text("Done", color = Color(0xFFF2C9A0), fontWeight = FontWeight.Bold) }
+            }) { Text(tr("Done"), color = Color(0xFFF2C9A0), fontWeight = FontWeight.Bold) }
         }
 
         Box(Modifier.weight(1f).fillMaxWidth().onSizeChanged { size ->
@@ -130,7 +131,7 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
         }
         // Size: the same zoom as pinching, kept centred on the frame
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Size", style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xB3FFFFFF)))
+            Text(tr("Size"), style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xB3FFFFFF)))
             val f = frame(); val lo = minScale(f)
             androidx.compose.material3.Slider(
                 value = if (scale > 0f && lo > 0f) ((scale / lo - 1f) / 5f).coerceIn(0f, 1f) else 0f,
@@ -151,13 +152,13 @@ fun CropScreen(photo: Bitmap, cut: String = "classic", startShape: String = "por
             offset = clamp(f, s, offset); scale = s
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            StampRenderer.shapes.forEach { (k, n, _) -> CropChip(n, k == shape) { shape = k } }
+            StampRenderer.shapes.forEach { (k, n, _) -> CropChip(tr(n), k == shape) { shape = k } }
         }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            com.annales.journal.render.Filters.all.forEach { (k, n) -> CropChip(n, k == filter) { filter = k } }
+            com.annales.journal.render.Filters.all.forEach { (k, n) -> CropChip(tr(n), k == filter) { filter = k } }
         }
     }
 }
